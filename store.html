@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=devic e-width, initial-scale=1.0">
+    <title>Cursor Dodge - Sketch & Survive | Game Store</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #111;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .store-container {
+            background: #181818;
+            margin-top: 40px;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0,255,255,0.08);
+            width: 95vw;
+            max-width: 900px;
+            padding: 32px 28px 32px 28px;
+            display: flex;
+            flex-direction: row;
+            gap: 32px;
+        }
+        .store-left {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .store-right {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .game-title {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: cyan;
+            margin-bottom: 0.2em;
+            text-shadow: 0 0 10px #00ffff55;
+            text-align: center;
+        }
+        .game-subtitle {
+            font-size: 1.1em;
+            color: gold;
+            margin-bottom: 1.2em;
+            text-align: center;
+        }
+        .game-screenshot {
+            width: 260px;
+            height: 160px;
+            background: #222;
+            border: 3px solid #444;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            box-shadow: 0 0 12px #00ffff33;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 1.1em;
+            position: relative;
+        }
+        .game-screenshot::after {
+            content: "Screenshot";
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            font-size: 0.85em;
+            color: #aaa;
+            opacity: 0.7;
+        }
+        .price-section {
+            margin-top: 18px;
+            text-align: center;
+        }
+        .game-price {
+            font-size: 2em;
+            color: gold;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 0 0 8px #ffd70044;
+        }
+        .buy-btn {
+            padding: 12px 36px;
+            font-size: 1.1em;
+            background: linear-gradient(90deg, #00ffff 0%, #007bff 100%);
+            color: #111;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 10px #00ffff55;
+            transition: background 0.2s, color 0.2s;
+        }
+        .buy-btn:hover {
+            background: linear-gradient(90deg, #00e6e6 0%, #005fa3 100%);
+            color: #fff;
+        }
+        .game-description {
+            font-size: 1.1em;
+            margin-bottom: 1.2em;
+            color: #eee;
+        }
+        .feature-list {
+            margin-bottom: 1.2em;
+        }
+        .feature-list li {
+            margin-bottom: 0.5em;
+            color: #ccc;
+            font-size: 1em;
+            padding-left: 0.5em;
+            border-left: 3px solid gold;
+        }
+        .section-title {
+            color: limegreen;
+            font-size: 1.1em;
+            margin-bottom: 0.5em;
+            margin-top: 1.2em;
+            letter-spacing: 1px;
+        }
+        .reviews-section {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 1.2em;
+            box-shadow: 0 0 8px #00ff0033;
+        }
+        .review {
+            margin-bottom: 1em;
+        }
+        .review:last-child {
+            margin-bottom: 0;
+        }
+        .review-user {
+            color: gold;
+            font-weight: bold;
+            font-size: 1em;
+        }
+        .review-text {
+            color: #ccc;
+            font-size: 0.98em;
+            margin-left: 0.5em;
+        }
+        @media (max-width: 800px) {
+            .store-container {
+                flex-direction: column;
+                align-items: center;
+                padding: 18px 6vw;
+            }
+            .store-left, .store-right {
+                width: 100%;
+                align-items: center;
+            }
+            .game-screenshot {
+                width: 90vw;
+                max-width: 350px;
+                height: 28vw;
+                min-height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="store-container">
+        <div class="store-left">
+            <div class="game-title">Cursor Dodge</div>
+            <div class="game-subtitle">Sketch & Survive</div>
+            <div class="game-screenshot">
+                <!-- Placeholder: Replace with actual screenshot if available -->
+                <span style="opacity:0.5;">[Game Preview]</span>
+            </div>
+            <div class="price-section">
+                <div class="game-price">$4.99</div>
+                <button class="buy-btn">Buy Now</button>
+            </div>
+        </div>
+        <div class="store-right">
+            <div class="game-description">
+                Dodge relentless waves of bullets, collect glowing orbs, and complete dynamic sketch quests in this fast-paced arcade challenge! <br>
+                <br>
+                <strong>Cursor Dodge: Sketch & Survive</strong> puts your reflexes and creativity to the test. Draw shapes to complete quests while evading danger and racking up high scores!
+            </div>
+            <div class="section-title">Features</div>
+            <ul class="feature-list">
+                <li>Intense bullet-dodging action with increasing difficulty</li>
+                <li>Unique "Sketch Quest" system – draw shapes to earn big bonuses</li>
+                <li>Collect orbs for extra points and power-ups</li>
+                <li>Dynamic, neon-inspired visuals and effects</li>
+                <li>Responsive mouse controls – your cursor is your character</li>
+                <li>Compete for high scores and survive as long as you can</li>
+            </ul>
+            <div class="section-title">What Players Say</div>
+            <div class="reviews-section">
+                <div class="review">
+                    <span class="review-user">PixelNinja</span>
+                    <span class="review-text">"Addictive and stylish! The sketch quests are a brilliant twist."</span>
+                </div>
+                <div class="review">
+                    <span class="review-user">ArcadeFan88</span>
+                    <span class="review-text">"Fast, fun, and challenging. Love the glowing effects!"</span>
+                </div>
+                <div class="review">
+                    <span class="review-user">SketchMaster</span>
+                    <span class="review-text">"Drawing shapes while dodging bullets is pure chaos – in the best way."</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

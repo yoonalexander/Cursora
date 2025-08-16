@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cursor Dodge - Sketch & Survive</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #111;
+            color: #fff;
+            display: flex;
+            flex-direction: column; /* Main layout for UI and game area */
+            align-items: center;
+            justify-content: flex-start; /* Align to top for sketch panel */
+            height: 100vh;
+            overflow: hidden;
+            cursor: none;
+        }
+
+        #pageContainer { /* Wraps UI and Game Area + Sketch Panel */
+            display: flex;
+            width: 95vw;
+            max-width: 1200px; /* Allow more width for sketch panel */
+            height: 90vh; /* Adjust as needed */
+        }
+
+        #sketchPanel {
+            width: 200px; /* Width of the sketch quest panel */
+            height: 100%;
+            background-color: #1a1a1a;
+            border-right: 2px solid #444;
+            padding: 15px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            color: #ccc;
+        }
+        #sketchPanel h3 {
+            color: gold;
+            margin-top: 0;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        .sketch-quest-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #282828;
+            border-radius: 5px;
+            border-left: 3px solid gold;
+        }
+        .sketch-quest-item.completed {
+            border-left-color: limegreen;
+            opacity: 0.7;
+        }
+        .sketch-quest-item p {
+            margin: 0 0 5px 0;
+            font-size: 0.9em;
+        }
+        .sketch-preview { /* Canvas for showing the sketch target */
+            width: 100%;
+            height: 80px; /* Adjust as needed */
+            background-color: #333;
+            border-radius: 3px;
+            margin-top: 5px;
+        }
+
+
+        #mainGameArea { /* Contains UI for game and the game container */
+            flex-grow: 1; /* Takes remaining space */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+
+        #gameContainer {
+            position: relative;
+            width: 100%; /* Fill mainGameArea width */
+            height: 80%; /* Adjust relative to mainGameArea height */
+            background-color: #222;
+            border: 3px solid #444;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            /* cursor: none; Will be handled by body */
+        }
+
+        #playerCursor {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: cyan;
+            border-radius: 50%;
+            box-shadow: 0 0 10px cyan, 0 0 5px cyan inset;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 100; /* Highest */
+        }
+
+        .bullet {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #ff4500;
+            border-radius: 50%;
+            box-shadow: 0 0 6px #ff4500, 0 0 2px #ff4500 inset;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .orb {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: limegreen;
+            border-radius: 50%;
+            box-shadow: 0 0 10px limegreen, 0 0 4px limegreen inset;
+            pointer-events: none;
+            z-index: 30;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+         .orb.visible { opacity: 1; }
+
+        /* Drawing Canvas & Line */
+        #drawingCanvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; /* Doesn't interfere with other game elements */
+            z-index: 20; /* Above orbs, below bullets/player */
+        }
+        .target-point-indicator { /* Visual for target points on drawing canvas */
+            position: absolute;
+            width: 8px; height: 8px;
+            background-color: rgba(255, 215, 0, 0.5); /* Semi-transparent gold */
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 25;
+        }
+        .target-point-indicator.hit {
+            background-color: rgba(0, 255, 0, 0.7); /* Green when hit */
+        }
+
+
+        #uiContainer {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            /* max-width: 800px; Removed, let it fill mainGameArea */
+            margin-top: 10px; /* Reduced margin */
+            margin-bottom: 5px;
+        }
+
+        #timerDisplay, #scoreDisplay {
+            font-size: 1.6em; /* Adjusted for more UI elements */
+            color: #eee;
+        }
+        #timerDisplay span { color: limegreen; }
+        #scoreDisplay span { color: gold; }
+
+
+        #messageContainer {
+            text-align: center;
+            width: 100%;
+            /* max-width: 800px; */
+        }
+        #instructions, #gameOverMessage {
+            font-size: 1.1em; /* Adjusted */
+            margin-bottom: 5px;
+        }
+
+        #startButton, #retryButton {
+            padding: 8px 18px; /* Adjusted */
+            font-size: 1em;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="pageContainer">
+        <div id="sketchPanel">
+            <h3>Sketch Quests</h3>
+            <div id="sketchQuestList">
+                <!-- Sketch quests will be populated here -->
+            </div>
+        </div>
+
+        <div id="mainGameArea">
+            <div id="uiContainer">
+                <div id="timerDisplay">Time: <span>0.00s</span></div>
+                <div id="scoreDisplay">Score: <span>0</span></div>
+            </div>
+            <div id="messageContainer">
+                <div id="instructions">Dodge bullets, collect orbs. Hold LMB to draw sketch quests!</div>
+                <div id="gameOverMessage" style="display: none;">Game Over!</div>
+                <button id="startButton">Start Game</button>
+                <button id="retryButton">Retry</button>
+            </div>
+            <div id="gameContainer">
+                <canvas id="drawingCanvas"></canvas> <!-- For drawing player lines -->
+                <div id="playerCursor"></div>
+                <!-- Bullets, Orbs, Target Point Indicators will be added here -->
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Get DOM Elements ---
+        const pageContainer = document.getElementById('pageContainer');
+        const sketchPanel = document.getElementById('sketchPanel');
+        const sketchQuestListEl = document.getElementById('sketchQuestList');
+        const mainGameArea = document.getElementById('mainGameArea');
+        const gameContainer = document.getElementById('gameContainer');
+        const drawingCanvas = document.getElementById('drawingCanvas');
+        const drawingCtx = drawingCanvas.getContext('2d');
+        const playerCursor = document.getElementById('playerCursor');
+        const timerDisplaySpan = document.querySelector('#timerDisplay span');
+        const scoreDisplaySpan = document.querySelector('#scoreDisplay span');
+        const startButton = document.getElementById('startButton');
+        const retryButton = document.getElementById('retryButton');
+        const instructions = document.getElementById('instructions');
+        const gameOverMessage = document.getElementById('gameOverMessage');
+
+        // --- Game State Variables ---
+        let gameActive = false;
+        let animationFrameId;
+        let bullets = [];
+        let orbs = [];
+        let startTime;
+        let elapsedTime = 0;
+        let score = 0;
+
+        // Drawing State
+        let isDrawing = false;
+        let lastPlayerDrawPos = null; // For connecting drawn lines
+        let drawnLines = []; // To store lines for fading effect
+        const lineFadeTime = 5000; // 5 seconds for lines to fade
+        let currentSketchQuest = null;
+        let sketchTargetPointIndicators = []; // DOM elements for target points
+
+        // Timing for spawns
+        let lastVolleySpawnTime = 0;
+        let lastOrbSpawnTime = 0;
+        let lastSketchQuestTime = 0;
+
+        // --- Difficulty & Gameplay Parameters ---
+        let baseBulletSpeed = 2.0;
+        let volleySpawnInterval = 1500;
+        let bulletsPerVolley = 1;
+        let maxBulletsOnScreen = 50;
+        let difficultyLevel = 1;
+        let timeToNextLevel = 10;
+
+        let orbSpawnInterval = 5000;
+        const orbValue = 100;
+        const maxOrbsOnScreen = 5;
+        const orbLifetime = 8000;
+
+        let sketchQuestInterval = 15000; // Time between new sketch quests
+        const sketchPointHitRadius = 20; // How close player needs to draw to a target point
+        const sketchSegmentPoints = 50;
+        const sketchCompletionBonus = 250;
+
+        let player = {
+            x: 0, y: 0, // Initialized later
+            radius: 7.5
+        };
+
+        // --- Sketch Definitions ---
+        // Points are relative to a bounding box (e.g., 0-100 for x and y)
+        // These will be scaled to the game area for actual display/checking
+        const sketchDefinitions = [
+            { name: "Line", points: [{x:10, y:50}, {x:90, y:50}], bonus: 150 },
+            { name: "Triangle", points: [{x:50, y:10}, {x:10, y:80}, {x:90, y:80}, {x:50,y:10}], bonus: 300 },
+            { name: "Letter L", points: [{x:20,y:10}, {x:20,y:80}, {x:70,y:80}], bonus: 250 },
+            { name: "Square", points: [{x:20,y:20}, {x:80,y:20}, {x:80,y:80}, {x:20,y:80}, {x:20,y:20}], bonus: 400},
+            { name: "Zig-Zag", points: [{x:10,y:20}, {x:90,y:20}, {x:10,y:50}, {x:90,y:50}, {x:10,y:80}], bonus: 350 }
+        ];
+        let activeSketchQuests = []; // Stores current quests with their state
+
+
+        // --- Canvas Setup ---
+        function resizeDrawingCanvas() {
+            drawingCanvas.width = gameContainer.offsetWidth;
+            drawingCanvas.height = gameContainer.offsetHeight;
+            player.x = gameContainer.offsetWidth / 2; // Initialize player pos after resize
+            player.y = gameContainer.offsetHeight / 2;
+        }
+        window.addEventListener('resize', resizeDrawingCanvas);
+
+
+        // --- Core Game Logic ---
+        function updatePlayerPosition(event) {
+            const rect = gameContainer.getBoundingClientRect();
+            const newX = event.clientX - rect.left;
+            const newY = event.clientY - rect.top;
+
+            player.x = Math.max(0, Math.min(newX, gameContainer.offsetWidth));
+            player.y = Math.max(0, Math.min(newY, gameContainer.offsetHeight));
+
+            playerCursor.style.left = `${player.x}px`;
+            playerCursor.style.top = `${player.y}px`;
+
+            if (isDrawing && gameActive) {
+                // Add a new line segment to be rendered in the game loop
+                drawnLines.push({
+                    start: { ...lastPlayerDrawPos },
+                    end: { x: player.x, y: player.y },
+                    timestamp: performance.now()
+                });
+                lastPlayerDrawPos = { x: player.x, y: player.y };
+                checkSketchPointHit();
+            }
+        }
+
+        function spawnVolley() { /* ... (same as before) ... */
+            if (bullets.length + bulletsPerVolley > maxBulletsOnScreen && gameActive) return;
+            for (let i = 0; i < bulletsPerVolley; i++) spawnSingleBullet();
+        }
+        function spawnSingleBullet() { /* ... (same as before) ... */
+            const bullet = document.createElement('div'); bullet.classList.add('bullet');
+            let spawnEdge = Math.floor(Math.random() * 4); let x, y;
+            const targetX = player.x; const targetY = player.y; const offset = 10;
+            switch (spawnEdge) {
+                case 0: x = Math.random() * gameContainer.offsetWidth; y = -offset; break;
+                case 1: x = gameContainer.offsetWidth + offset; y = Math.random() * gameContainer.offsetHeight; break;
+                case 2: x = Math.random() * gameContainer.offsetWidth; y = gameContainer.offsetHeight + offset; break;
+                case 3: x = -offset; y = Math.random() * gameContainer.offsetHeight; break;
+            }
+            let angleToPlayer = Math.atan2(targetY - y, targetX - x);
+            if (bulletsPerVolley > 1) angleToPlayer += (Math.random() - 0.5) * (0.2 * Math.min(bulletsPerVolley, 5));
+            else angleToPlayer += (Math.random() - 0.5) * 0.3;
+            const dx = Math.cos(angleToPlayer) * baseBulletSpeed; const dy = Math.sin(angleToPlayer) * baseBulletSpeed;
+            bullet.style.left = `${x}px`; bullet.style.top = `${y}px`;
+            bullets.push({ element: bullet, x, y, dx, dy, radius: 4 }); gameContainer.appendChild(bullet);
+        }
+        function spawnOrb() { /* ... (same as before) ... */
+            if (orbs.length >= maxOrbsOnScreen || !gameActive) return;
+            const orb = document.createElement('div'); orb.classList.add('orb');
+            const padding = 30; const x = padding + Math.random() * (gameContainer.offsetWidth - 2 * padding);
+            const y = padding + Math.random() * (gameContainer.offsetHeight - 2 * padding);
+            orb.style.left = `${x}px`; orb.style.top = `${y}px`;
+            const spawnTime = performance.now();
+            orbs.push({ element: orb, x, y, radius: 6, spawnTime }); gameContainer.appendChild(orb);
+            requestAnimationFrame(() => { setTimeout(() => orb.classList.add('visible'), 50); });
+        }
+
+
+        function updateBulletsAndOrbs(timestamp) { /* ... (mostly same) ... */
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i]; bullet.x += bullet.dx; bullet.y += bullet.dy;
+                bullet.element.style.left = `${bullet.x}px`; bullet.element.style.top = `${bullet.y}px`;
+                const distToPlayer = Math.sqrt(Math.pow(player.x - (bullet.x + bullet.radius), 2) + Math.pow(player.y - (bullet.y + bullet.radius), 2));
+                if (distToPlayer < player.radius + bullet.radius) { gameOver(); return; }
+                if (bullet.x < -50 || bullet.x > gameContainer.offsetWidth + 50 || bullet.y < -50 || bullet.y > gameContainer.offsetHeight + 50) {
+                    bullet.element.remove(); bullets.splice(i, 1);
+                }
+            }
+            for (let i = orbs.length - 1; i >= 0; i--) {
+                const orb = orbs[i];
+                const distToPlayer = Math.sqrt(Math.pow(player.x - (orb.x + orb.radius), 2) + Math.pow(player.y - (orb.y + orb.radius), 2));
+                if (distToPlayer < player.radius + orb.radius) {
+                    score += orbValue; scoreDisplaySpan.textContent = score; orb.element.remove(); orbs.splice(i, 1);
+                } else if (timestamp - orb.spawnTime > orbLifetime) {
+                    orb.element.style.opacity = 0; setTimeout(() => { if(orb.element.parentNode) orb.element.remove(); }, 500); orbs.splice(i, 1);
+                }
+            }
+        }
+
+        function increaseDifficulty() { /* ... (same as before, can add sketch quest frequency here) ... */
+             if (elapsedTime > difficultyLevel * timeToNextLevel) {
+                difficultyLevel++;
+                if (difficultyLevel % 2 === 0 && bulletsPerVolley < 10) bulletsPerVolley++;
+                if (volleySpawnInterval > 400) volleySpawnInterval = Math.max(400, volleySpawnInterval * 0.95);
+                if (baseBulletSpeed < 3.5) baseBulletSpeed += 0.05;
+                if (maxBulletsOnScreen < 150) maxBulletsOnScreen = Math.min(150, 50 + difficultyLevel * 5);
+                if (orbSpawnInterval > 2000) orbSpawnInterval = Math.max(2000, orbSpawnInterval * 0.97);
+                if (sketchQuestInterval > 8000) sketchQuestInterval = Math.max(8000, sketchQuestInterval * 0.96); // Sketch quests more frequent
+            }
+        }
+
+        // --- Sketch Quest Logic ---
+        function generateSketchQuest() {
+            if (activeSketchQuests.length >= 2 || !gameActive) return; // Limit active quests
+
+            const availableSketches = sketchDefinitions.filter(sd => !activeSketchQuests.find(aq => aq.name === sd.name));
+            if (availableSketches.length === 0) return;
+
+            const sketchDef = availableSketches[Math.floor(Math.random() * availableSketches.length)];
+            const questId = `sketch-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+            // Scale points to game area (e.g., center it and use 60% of width/height)
+            const gameW = gameContainer.offsetWidth;
+            const gameH = gameContainer.offsetHeight;
+            const sketchAreaScale = 0.5; // Use 50% of game area for the sketch
+            const sketchAreaW = gameW * sketchAreaScale;
+            const sketchAreaH = gameH * sketchAreaScale;
+            const offsetX = (gameW - sketchAreaW) / 2;
+            const offsetY = (gameH - sketchAreaH) / 2;
+
+            const scaledPoints = sketchDef.points.map(p => ({
+                x: offsetX + (p.x / 100) * sketchAreaW,
+                y: offsetY + (p.y / 100) * sketchAreaH,
+                hit: false
+            }));
+
+            const newQuest = {
+                id: questId,
+                name: sketchDef.name,
+                definition: sketchDef,
+                scaledPoints: scaledPoints,
+                currentPointIndex: 0,
+                completed: false,
+                domElement: null, // Will be created by renderSketchQuests
+                targetPointIndicators: [] // DOM elements for this quest's points
+            };
+            activeSketchQuests.push(newQuest);
+            renderSketchQuests();
+            displaySketchTargetPoints(newQuest);
+        }
+
+        function renderSketchQuests() {
+            sketchQuestListEl.innerHTML = '';
+            activeSketchQuests.forEach(quest => {
+                const item = document.createElement('div');
+                item.classList.add('sketch-quest-item');
+                item.id = quest.id;
+                if (quest.completed) item.classList.add('completed');
+
+                const title = document.createElement('p');
+                title.innerHTML = `<strong>${quest.name}</strong> (${quest.currentPointIndex}/${quest.scaledPoints.length -1} seg.)`;
+                item.appendChild(title);
+
+                // Simple preview (dots for now, could be a mini canvas drawing later)
+                const preview = document.createElement('div');
+                preview.classList.add('sketch-preview');
+                // For a better preview, you'd draw on a small canvas here
+                // For now, just a placeholder
+                let pointsStr = quest.definition.points.map(p => `(${p.x},${p.y})`).join(', ');
+                preview.textContent = `Target: ${pointsStr.substring(0, 20)}...`; // Basic preview
+                preview.title = pointsStr; // Full points on hover
+                item.appendChild(preview);
+
+                quest.domElement = item;
+                sketchQuestListEl.appendChild(item);
+            });
+        }
+
+        function displaySketchTargetPoints(quest) {
+            // Clear previous target points for this quest if any
+            quest.targetPointIndicators.forEach(indicator => indicator.remove());
+            quest.targetPointIndicators = [];
+
+            if (quest.completed) return;
+
+            quest.scaledPoints.forEach((point, index) => {
+                const indicator = document.createElement('div');
+                indicator.classList.add('target-point-indicator');
+                indicator.style.left = `${point.x}px`;
+                indicator.style.top = `${point.y}px`;
+                if (point.hit) indicator.classList.add('hit');
+                gameContainer.appendChild(indicator);
+                quest.targetPointIndicators.push(indicator);
+            });
+        }
+
+        function checkSketchPointHit() {
+            if (!isDrawing || activeSketchQuests.length === 0) return;
+
+            activeSketchQuests.forEach(quest => {
+                if (quest.completed) return;
+
+                const targetPoint = quest.scaledPoints[quest.currentPointIndex];
+                if (!targetPoint || targetPoint.hit) return; // Already hit or no more points
+
+                const dist = Math.sqrt(Math.pow(player.x - targetPoint.x, 2) + Math.pow(player.y - targetPoint.y, 2));
+
+                if (dist < sketchPointHitRadius) {
+                    targetPoint.hit = true;
+                    quest.targetPointIndicators[quest.currentPointIndex]?.classList.add('hit'); // Update visual
+                    score += sketchSegmentPoints;
+                    quest.currentPointIndex++;
+
+                    if (quest.currentPointIndex >= quest.scaledPoints.length) { // All points hit
+                        quest.completed = true;
+                        score += quest.definition.bonus; // Main bonus for completion
+                        // Clear target points for this completed quest from game screen
+                        quest.targetPointIndicators.forEach(indicator => indicator.remove());
+                        quest.targetPointIndicators = [];
+                        // Remove from active quests after a delay or make it visually distinct
+                        setTimeout(() => {
+                            activeSketchQuests = activeSketchQuests.filter(q => q.id !== quest.id);
+                            renderSketchQuests();
+                        }, 2000); // Remove from list after 2s
+                    }
+                    renderSketchQuests(); // Update UI
+                    scoreDisplaySpan.textContent = score;
+                }
+            });
+        }
+
+        function clearDrawingCanvas() {
+            drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        }
+
+        function drawAndFadeLines() {
+            // We must clear the canvas each frame before redrawing lines
+            clearDrawingCanvas();
+
+            const now = performance.now();
+            drawingCtx.lineWidth = 3;
+            drawingCtx.lineCap = 'round'; // Makes lines look smoother
+
+            for (let i = drawnLines.length - 1; i >= 0; i--) {
+                const line = drawnLines[i];
+                const age = now - line.timestamp;
+
+                if (age > lineFadeTime) {
+                    drawnLines.splice(i, 1); // Remove old line
+                    continue;
+                }
+
+                // Calculate opacity - fades out over the line's lifetime
+                const opacity = 0.7 * (1 - (age / lineFadeTime));
+
+                drawingCtx.beginPath();
+                drawingCtx.moveTo(line.start.x, line.start.y);
+                drawingCtx.lineTo(line.end.x, line.end.y);
+                drawingCtx.strokeStyle = `rgba(0, 255, 255, ${opacity})`;
+                drawingCtx.stroke();
+            }
+        }
+
+
+        // --- Game Loop & State Management ---
+        function gameLoop(timestamp) {
+            if (!gameActive) return;
+            if (!startTime) startTime = timestamp;
+            const currentFrameTime = (timestamp - startTime) / 1000;
+            const deltaTime = currentFrameTime - elapsedTime;
+            elapsedTime = currentFrameTime;
+
+            timerDisplaySpan.textContent = `${elapsedTime.toFixed(2)}s`;
+            score += Math.floor(10 * deltaTime);
+            scoreDisplaySpan.textContent = score;
+
+            if (timestamp - lastVolleySpawnTime > volleySpawnInterval) { spawnVolley(); lastVolleySpawnTime = timestamp; }
+            if (timestamp - lastOrbSpawnTime > orbSpawnInterval) { spawnOrb(); lastOrbSpawnTime = timestamp; }
+            if (timestamp - lastSketchQuestTime > sketchQuestInterval) { generateSketchQuest(); lastSketchQuestTime = timestamp; }
+
+            drawAndFadeLines(); // Redraws the fading lines each frame
+            updateBulletsAndOrbs(timestamp);
+            increaseDifficulty();
+            // Sketch points are checked during player mouse move if isDrawing
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function resetGame() { /* ... (mostly same, add sketch quest reset) ... */
+            gameActive = false;
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            bullets.forEach(b => b.element.remove()); bullets = [];
+            orbs.forEach(o => o.element.remove()); orbs = [];
+            activeSketchQuests.forEach(q => {
+                q.targetPointIndicators.forEach(indicator => indicator.remove());
+            });
+            activeSketchQuests = []; sketchTargetPointIndicators.forEach(i => i.remove()); sketchTargetPointIndicators = [];
+
+
+            startTime = null; elapsedTime = 0; score = 0;
+            lastVolleySpawnTime = 0; lastOrbSpawnTime = 0; lastSketchQuestTime = 0; // Reset sketch quest timer
+
+            baseBulletSpeed = 2.0; volleySpawnInterval = 1500; bulletsPerVolley = 1;
+            maxBulletsOnScreen = 50; difficultyLevel = 1; timeToNextLevel = 10;
+            orbSpawnInterval = 5000; sketchQuestInterval = 15000; // Reset sketch interval
+
+            timerDisplaySpan.textContent = '0.00s'; scoreDisplaySpan.textContent = '0';
+            drawnLines = []; // Clear any leftover lines
+            clearDrawingCanvas();
+            renderSketchQuests(); // Clear quest list UI
+        }
+
+        function startGame() { /* ... (same) ... */
+            if (gameActive) return;
+            resetGame();
+            gameActive = true;
+            instructions.style.display = 'none'; gameOverMessage.style.display = 'none';
+            startButton.style.display = 'none'; retryButton.style.display = 'none';
+            gameContainer.style.cursor = 'none'; // Set on game container
+            playerCursor.style.left = `${player.x}px`; playerCursor.style.top = `${player.y}px`;
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+        function gameOver() { /* ... (same) ... */
+            if (!gameActive) return; gameActive = false;
+            cancelAnimationFrame(animationFrameId);
+            gameOverMessage.innerHTML = `Game Over! Final Score: <span style="color:gold;">${score}</span> | Survived: <span style="color:limegreen;">${elapsedTime.toFixed(2)}s</span>`;
+            gameOverMessage.style.display = 'block'; retryButton.style.display = 'inline-block';
+            gameContainer.style.cursor = 'default'; document.body.style.cursor = 'default';
+            isDrawing = false; // Stop drawing on game over
+        }
+
+        // --- Event Listeners ---
+        // Mouse move for player cursor and drawing line
+        document.addEventListener('mousemove', (event) => { // Listen on document for smoother drawing start/end
+            updatePlayerPosition(event);
+        });
+
+        // Mouse down/up for drawing mode
+        gameContainer.addEventListener('mousedown', (event) => {
+            if (event.button === 0 && gameActive) { // Left mouse button
+                isDrawing = true;
+                lastPlayerDrawPos = { x: player.x, y: player.y };
+            }
+        });
+        document.addEventListener('mouseup', (event) => { // Listen on document so if mouse moves out of gamecontainer it still registers
+            if (event.button === 0 && isDrawing) {
+                isDrawing = false;
+                lastPlayerDrawPos = null;
+            }
+        });
+
+        startButton.addEventListener('click', startGame);
+        retryButton.addEventListener('click', startGame);
+
+        // --- Initial Setup ---
+        resizeDrawingCanvas(); // Set initial canvas size and player position
+        playerCursor.style.left = `${player.x}px`;
+        playerCursor.style.top = `${player.y}px`;
+        renderSketchQuests(); // Initial render (empty)
+    </script>
+</body>
+</html>
