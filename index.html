@@ -3,235 +3,614 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cursor Dodge - Sketch & Survive</title>
+    <title>Cursora - Sketch & Survive</title>
+    <link rel="icon" type="image/png" href="AY%20Logo%20Large%20Clear.png">
     <style>
+        :root {
+            --paper: #f6ead2;
+            --ink: #f8f1e3;
+            --muted: #a7b0ad;
+            --bg: #090b0f;
+            --panel: rgba(20, 24, 29, 0.9);
+            --panel-strong: rgba(28, 32, 38, 0.96);
+            --line: rgba(246, 234, 210, 0.16);
+            --line-strong: rgba(246, 234, 210, 0.34);
+            --cyan: #2df7ef;
+            --cyan-soft: rgba(45, 247, 239, 0.22);
+            --gold: #ffd76a;
+            --gold-soft: rgba(255, 215, 106, 0.16);
+            --red: #ff5d55;
+            --green: #66f2a2;
+            --shadow: 0 24px 90px rgba(0, 0, 0, 0.45);
+            --radius: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+        }
+
         body {
             margin: 0;
-            padding: 0;
-            font-family: 'Arial', sans-serif;
-            background-color: #111;
-            color: #fff;
-            display: flex;
-            flex-direction: column; /* Main layout for UI and game area */
-            align-items: center;
-            justify-content: flex-start; /* Align to top for sketch panel */
-            height: 100vh;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(45, 247, 239, 0.14), transparent 34rem),
+                radial-gradient(circle at bottom right, rgba(255, 215, 106, 0.08), transparent 30rem),
+                linear-gradient(135deg, #07080b 0%, #111418 54%, #090b0f 100%);
+            color: var(--ink);
+            min-height: 100vh;
             overflow: hidden;
             cursor: none;
         }
 
-        #pageContainer { /* Wraps UI and Game Area + Sketch Panel */
-            display: flex;
-            width: 95vw;
-            max-width: 1200px; /* Allow more width for sketch panel */
-            height: 90vh; /* Adjust as needed */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.22;
+            background-image:
+                linear-gradient(rgba(246, 234, 210, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(246, 234, 210, 0.06) 1px, transparent 1px);
+            background-size: 32px 32px;
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 85%);
         }
 
-        #sketchPanel {
-            width: 200px; /* Width of the sketch quest panel */
-            height: 100%;
-            background-color: #1a1a1a;
-            border-right: 2px solid #444;
-            padding: 15px;
-            box-sizing: border-box;
-            overflow-y: auto;
-            color: #ccc;
-        }
-        #sketchPanel h3 {
-            color: gold;
-            margin-top: 0;
-            margin-bottom: 10px;
-            text-align: center;
-            font-size: 1.2em;
-        }
-        .sketch-quest-item {
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: #282828;
-            border-radius: 5px;
-            border-left: 3px solid gold;
-        }
-        .sketch-quest-item.completed {
-            border-left-color: limegreen;
-            opacity: 0.7;
-        }
-        .sketch-quest-item p {
-            margin: 0 0 5px 0;
-            font-size: 0.9em;
-        }
-        .sketch-preview { /* Canvas for showing the sketch target */
-            width: 100%;
-            height: 80px; /* Adjust as needed */
-            background-color: #333;
-            border-radius: 3px;
-            margin-top: 5px;
+        button,
+        a {
+            font: inherit;
         }
 
+        .app-shell {
+            width: min(1480px, calc(100vw - 32px));
+            height: min(900px, calc(100vh - 32px));
+            margin: 16px auto;
+            display: grid;
+            grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+            gap: 16px;
+        }
 
-        #mainGameArea { /* Contains UI for game and the game container */
-            flex-grow: 1; /* Takes remaining space */
+        .quest-panel,
+        .game-panel {
+            position: relative;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
+                var(--panel);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .quest-panel::before,
+        .game-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(246, 234, 210, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(246, 234, 210, 0.035) 1px, transparent 1px);
+            background-size: 18px 18px;
+        }
+
+        .quest-panel {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            padding: 18px;
+            gap: 14px;
         }
 
+        .brand-lockup {
+            position: relative;
+            z-index: 1;
+            padding-bottom: 14px;
+            border-bottom: 1px dashed var(--line-strong);
+        }
+
+        .eyebrow {
+            color: var(--cyan);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        h1,
+        h2,
+        h3,
+        p {
+            margin: 0;
+        }
+
+        .brand-lockup h1 {
+            margin-top: 8px;
+            font-size: clamp(1.65rem, 2.8vw, 2.4rem);
+            line-height: 0.95;
+            letter-spacing: 0;
+        }
+
+        .brand-lockup p {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.45;
+        }
+
+        .quest-header {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 4px;
+        }
+
+        .quest-header h2 {
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--paper);
+        }
+
+        .quest-count {
+            min-width: 34px;
+            height: 26px;
+            display: inline-grid;
+            place-items: center;
+            border: 1px solid var(--gold);
+            border-radius: 999px;
+            color: var(--gold);
+            font-size: 0.78rem;
+            font-weight: 800;
+            background: var(--gold-soft);
+        }
+
+        #sketchQuestList {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            gap: 12px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .empty-quests {
+            border: 1px dashed var(--line-strong);
+            border-radius: var(--radius);
+            padding: 16px;
+            color: var(--muted);
+            font-size: 0.9rem;
+            line-height: 1.45;
+            background: rgba(255, 255, 255, 0.025);
+        }
+
+        .sketch-quest-item {
+            position: relative;
+            border: 1px solid var(--line);
+            border-left: 3px solid var(--gold);
+            border-radius: var(--radius);
+            padding: 12px;
+            background:
+                linear-gradient(135deg, rgba(255, 215, 106, 0.12), transparent 42%),
+                rgba(255, 255, 255, 0.035);
+            transition: transform 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+        }
+
+        .sketch-quest-item.completed {
+            border-left-color: var(--green);
+            opacity: 0.7;
+        }
+
+        .quest-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            gap: 10px;
+        }
+
+        .quest-name {
+            color: var(--ink);
+            font-weight: 800;
+            font-size: 0.96rem;
+        }
+
+        .quest-reward {
+            color: var(--gold);
+            font-size: 0.75rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .quest-progress {
+            margin-top: 8px;
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(246, 234, 210, 0.1);
+            overflow: hidden;
+        }
+
+        .quest-progress span {
+            display: block;
+            height: 100%;
+            width: var(--progress, 0%);
+            background: linear-gradient(90deg, var(--cyan), var(--gold));
+            box-shadow: 0 0 16px var(--cyan-soft);
+        }
+
+        .sketch-preview {
+            width: 100%;
+            height: 76px;
+            margin-top: 12px;
+            border: 1px dashed rgba(246, 234, 210, 0.22);
+            border-radius: 6px;
+            background:
+                linear-gradient(rgba(246, 234, 210, 0.045) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(246, 234, 210, 0.045) 1px, transparent 1px),
+                rgba(9, 11, 15, 0.42);
+            background-size: 14px 14px;
+        }
+
+        .panel-footer {
+            position: relative;
+            z-index: 1;
+            margin-top: auto;
+            border-top: 1px dashed var(--line-strong);
+            padding-top: 14px;
+            color: var(--muted);
+            font-size: 0.8rem;
+            line-height: 1.45;
+        }
+
+        .game-panel {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            min-width: 0;
+        }
+
+        .top-hud {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            border-bottom: 1px solid var(--line);
+            background: rgba(9, 11, 15, 0.52);
+        }
+
+        .status-copy {
+            min-width: 0;
+        }
+
+        #instructions,
+        #gameOverMessage {
+            color: var(--paper);
+            font-size: clamp(0.95rem, 1.4vw, 1.08rem);
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        #gameOverMessage {
+            color: var(--red);
+        }
+
+        .hud-stats {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: end;
+        }
+
+        .stat-card {
+            min-width: 122px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 9px 12px;
+            background: rgba(255, 255, 255, 0.035);
+        }
+
+        .stat-label {
+            display: block;
+            color: var(--muted);
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
+        }
+
+        #timerDisplay span,
+        #scoreDisplay span {
+            display: block;
+            margin-top: 3px;
+            font-size: 1.28rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        #timerDisplay span {
+            color: var(--green);
+        }
+
+        #scoreDisplay span {
+            color: var(--gold);
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .button {
+            min-height: 40px;
+            border: 1px solid rgba(45, 247, 239, 0.45);
+            border-radius: 999px;
+            padding: 0 16px;
+            color: #031515;
+            background: linear-gradient(135deg, var(--cyan), #9dfff8);
+            box-shadow: 0 0 24px var(--cyan-soft);
+            cursor: pointer;
+            font-weight: 900;
+            transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 34px rgba(45, 247, 239, 0.34);
+        }
+
+        .button.secondary {
+            color: var(--paper);
+            background: rgba(246, 234, 210, 0.06);
+            border-color: var(--line-strong);
+            box-shadow: none;
+        }
+
+        #retryButton {
+            display: none;
+        }
+
+        .arena-wrap {
+            position: relative;
+            z-index: 1;
+            min-height: 0;
+            padding: 16px;
+            display: grid;
+        }
 
         #gameContainer {
             position: relative;
-            width: 100%; /* Fill mainGameArea width */
-            height: 80%; /* Adjust relative to mainGameArea height */
-            background-color: #222;
-            border: 3px solid #444;
+            width: 100%;
+            height: 100%;
+            min-height: 460px;
+            border: 1px solid rgba(45, 247, 239, 0.34);
+            border-radius: var(--radius);
             overflow: hidden;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-            /* cursor: none; Will be handled by body */
+            background:
+                radial-gradient(circle at center, rgba(45, 247, 239, 0.08), transparent 30%),
+                linear-gradient(rgba(246, 234, 210, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(246, 234, 210, 0.04) 1px, transparent 1px),
+                #191d20;
+            background-size: auto, 28px 28px, 28px 28px, auto;
+            box-shadow:
+                inset 0 0 0 1px rgba(246, 234, 210, 0.05),
+                0 0 40px rgba(45, 247, 239, 0.14);
+        }
+
+        #gameContainer::before {
+            content: "";
+            position: absolute;
+            inset: 10px;
+            border: 1px dashed rgba(246, 234, 210, 0.12);
+            border-radius: 6px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        #drawingCanvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
         }
 
         #playerCursor {
             position: absolute;
-            width: 15px;
-            height: 15px;
-            background-color: cyan;
+            width: 16px;
+            height: 16px;
+            background: var(--cyan);
+            border: 2px solid rgba(255, 255, 255, 0.78);
             border-radius: 50%;
-            box-shadow: 0 0 10px cyan, 0 0 5px cyan inset;
+            box-shadow: 0 0 18px var(--cyan), 0 0 4px var(--cyan) inset;
             pointer-events: none;
             transform: translate(-50%, -50%);
-            z-index: 100; /* Highest */
+            z-index: 100;
         }
 
         .bullet {
             position: absolute;
-            width: 8px;
-            height: 8px;
-            background-color: #ff4500;
+            width: 9px;
+            height: 9px;
+            background: var(--red);
             border-radius: 50%;
-            box-shadow: 0 0 6px #ff4500, 0 0 2px #ff4500 inset;
+            box-shadow: 0 0 12px rgba(255, 93, 85, 0.92), 0 0 2px var(--red) inset;
             pointer-events: none;
             z-index: 50;
         }
 
         .orb {
             position: absolute;
-            width: 12px;
-            height: 12px;
-            background-color: limegreen;
+            width: 14px;
+            height: 14px;
+            background: var(--green);
             border-radius: 50%;
-            box-shadow: 0 0 10px limegreen, 0 0 4px limegreen inset;
+            box-shadow: 0 0 16px rgba(102, 242, 162, 0.86), 0 0 4px var(--green) inset;
             pointer-events: none;
             z-index: 30;
             opacity: 0;
-            transition: opacity 0.5s ease-in-out;
+            transition: opacity 0.5s ease-in-out, transform 0.2s ease;
         }
-         .orb.visible { opacity: 1; }
 
-        /* Drawing Canvas & Line */
-        #drawingCanvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none; /* Doesn't interfere with other game elements */
-            z-index: 20; /* Above orbs, below bullets/player */
+        .orb.visible {
+            opacity: 1;
         }
-        .target-point-indicator { /* Visual for target points on drawing canvas */
+
+        .target-point-indicator {
             position: absolute;
-            width: 8px; height: 8px;
-            background-color: rgba(255, 215, 0, 0.5); /* Semi-transparent gold */
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--gold);
+            background: rgba(255, 215, 106, 0.24);
             border-radius: 50%;
             transform: translate(-50%, -50%);
+            box-shadow: 0 0 16px rgba(255, 215, 106, 0.28);
             z-index: 25;
         }
+
         .target-point-indicator.hit {
-            background-color: rgba(0, 255, 0, 0.7); /* Green when hit */
+            border-color: var(--green);
+            background: rgba(102, 242, 162, 0.38);
+            box-shadow: 0 0 18px rgba(102, 242, 162, 0.38);
         }
 
+        @media (max-width: 980px) {
+            body {
+                overflow: auto;
+                cursor: default;
+            }
 
-        #uiContainer {
-            display: flex;
-            justify-content: space-around;
-            width: 100%;
-            /* max-width: 800px; Removed, let it fill mainGameArea */
-            margin-top: 10px; /* Reduced margin */
-            margin-bottom: 5px;
+            .app-shell {
+                height: auto;
+                min-height: calc(100vh - 24px);
+                width: min(100vw - 24px, 760px);
+                margin: 12px auto;
+                grid-template-columns: 1fr;
+            }
+
+            .quest-panel {
+                min-height: 240px;
+            }
+
+            .top-hud {
+                grid-template-columns: 1fr;
+                align-items: stretch;
+            }
+
+            .hud-stats {
+                justify-content: start;
+            }
+
+            #gameContainer {
+                height: min(64vh, 560px);
+                min-height: 360px;
+            }
         }
 
-        #timerDisplay, #scoreDisplay {
-            font-size: 1.6em; /* Adjusted for more UI elements */
-            color: #eee;
-        }
-        #timerDisplay span { color: limegreen; }
-        #scoreDisplay span { color: gold; }
+        @media (max-width: 560px) {
+            .app-shell {
+                width: calc(100vw - 16px);
+                margin: 8px auto;
+                gap: 10px;
+            }
 
+            .quest-panel,
+            .game-panel {
+                border-radius: 6px;
+            }
 
-        #messageContainer {
-            text-align: center;
-            width: 100%;
-            /* max-width: 800px; */
-        }
-        #instructions, #gameOverMessage {
-            font-size: 1.1em; /* Adjusted */
-            margin-bottom: 5px;
-        }
+            .quest-panel,
+            .top-hud,
+            .arena-wrap {
+                padding: 12px;
+            }
 
-        #startButton, #retryButton {
-            padding: 8px 18px; /* Adjusted */
-            font-size: 1em;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            margin-top: 5px;
+            .hud-stats,
+            .controls {
+                width: 100%;
+            }
+
+            .stat-card {
+                flex: 1 1 130px;
+            }
+
+            .button {
+                flex: 1 1 120px;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="pageContainer">
-        <div id="sketchPanel">
-            <h3>Sketch Quests</h3>
-            <div id="sketchQuestList">
-                <!-- Sketch quests will be populated here -->
+    <main class="app-shell">
+        <aside id="sketchPanel" class="quest-panel" aria-label="Sketch quests">
+            <div class="brand-lockup">
+                <div class="eyebrow">Cursor Dodge</div>
+                <h1>Cursora</h1>
+                <p>Trace shapes under fire. Every clean line buys you more time on the board.</p>
             </div>
-        </div>
+            <div class="quest-header">
+                <h2>Sketch Quests</h2>
+                <span id="questCount" class="quest-count">0</span>
+            </div>
+            <div id="sketchQuestList"></div>
+            <div class="panel-footer">Hold left mouse button inside the arena to draw. Hit quest points in order to cash the bonus.</div>
+        </aside>
 
-        <div id="mainGameArea">
-            <div id="uiContainer">
-                <div id="timerDisplay">Time: <span>0.00s</span></div>
-                <div id="scoreDisplay">Score: <span>0</span></div>
-            </div>
-            <div id="messageContainer">
-                <div id="instructions">Dodge bullets, collect orbs. Hold LMB to draw sketch quests!</div>
-                <div id="gameOverMessage" style="display: none;">Game Over!</div>
-                <button id="startButton">Start Game</button>
-                <button id="retryButton">Retry</button>
-            </div>
-            <div id="gameContainer">
-                <canvas id="drawingCanvas"></canvas> <!-- For drawing player lines -->
-                <div id="playerCursor"></div>
-                <!-- Bullets, Orbs, Target Point Indicators will be added here -->
-            </div>
-        </div>
-    </div>
+        <section id="mainGameArea" class="game-panel">
+            <header class="top-hud">
+                <div class="status-copy">
+                    <div id="instructions">Dodge bullets, collect orbs, and sketch the active quests.</div>
+                    <div id="gameOverMessage" style="display: none;">Game Over!</div>
+                </div>
+                <div class="hud-stats">
+                    <div id="timerDisplay" class="stat-card">
+                        <span class="stat-label">Time</span>
+                        <span>0.00s</span>
+                    </div>
+                    <div id="scoreDisplay" class="stat-card">
+                        <span class="stat-label">Score</span>
+                        <span>0</span>
+                    </div>
+                    <div class="controls">
+                        <button id="startButton" class="button">Start</button>
+                        <button id="retryButton" class="button secondary">Retry</button>
+                    </div>
+                </div>
+            </header>
 
+            <div class="arena-wrap">
+                <div id="gameContainer">
+                    <canvas id="drawingCanvas"></canvas>
+                    <div id="playerCursor"></div>
+                </div>
+            </div>
+        </section>
+    </main>
 
     <script>
-        // --- Get DOM Elements ---
-        const pageContainer = document.getElementById('pageContainer');
         const sketchPanel = document.getElementById('sketchPanel');
         const sketchQuestListEl = document.getElementById('sketchQuestList');
-        const mainGameArea = document.getElementById('mainGameArea');
+        const questCountEl = document.getElementById('questCount');
         const gameContainer = document.getElementById('gameContainer');
         const drawingCanvas = document.getElementById('drawingCanvas');
         const drawingCtx = drawingCanvas.getContext('2d');
         const playerCursor = document.getElementById('playerCursor');
-        const timerDisplaySpan = document.querySelector('#timerDisplay span');
-        const scoreDisplaySpan = document.querySelector('#scoreDisplay span');
+        const timerDisplaySpan = document.querySelector('#timerDisplay > span:last-child');
+        const scoreDisplaySpan = document.querySelector('#scoreDisplay > span:last-child');
         const startButton = document.getElementById('startButton');
         const retryButton = document.getElementById('retryButton');
         const instructions = document.getElementById('instructions');
         const gameOverMessage = document.getElementById('gameOverMessage');
 
-        // --- Game State Variables ---
         let gameActive = false;
         let animationFrameId;
         let bullets = [];
@@ -240,20 +619,16 @@
         let elapsedTime = 0;
         let score = 0;
 
-        // Drawing State
         let isDrawing = false;
-        let lastPlayerDrawPos = null; // For connecting drawn lines
-        let drawnLines = []; // To store lines for fading effect
-        const lineFadeTime = 5000; // 5 seconds for lines to fade
-        let currentSketchQuest = null;
-        let sketchTargetPointIndicators = []; // DOM elements for target points
+        let lastPlayerDrawPos = null;
+        let drawnLines = [];
+        const lineFadeTime = 5000;
+        let sketchTargetPointIndicators = [];
 
-        // Timing for spawns
         let lastVolleySpawnTime = 0;
         let lastOrbSpawnTime = 0;
         let lastSketchQuestTime = 0;
 
-        // --- Difficulty & Gameplay Parameters ---
         let baseBulletSpeed = 2.0;
         let volleySpawnInterval = 1500;
         let bulletsPerVolley = 1;
@@ -266,19 +641,16 @@
         const maxOrbsOnScreen = 5;
         const orbLifetime = 8000;
 
-        let sketchQuestInterval = 15000; // Time between new sketch quests
-        const sketchPointHitRadius = 20; // How close player needs to draw to a target point
+        let sketchQuestInterval = 15000;
+        const sketchPointHitRadius = 20;
         const sketchSegmentPoints = 50;
-        const sketchCompletionBonus = 250;
 
         let player = {
-            x: 0, y: 0, // Initialized later
+            x: 0,
+            y: 0,
             radius: 7.5
         };
 
-        // --- Sketch Definitions ---
-        // Points are relative to a bounding box (e.g., 0-100 for x and y)
-        // These will be scaled to the game area for actual display/checking
         const sketchDefinitions = [
             { name: "Line", points: [{x:10, y:50}, {x:90, y:50}], bonus: 150 },
             { name: "Triangle", points: [{x:50, y:10}, {x:10, y:80}, {x:90, y:80}, {x:50,y:10}], bonus: 300 },
@@ -286,20 +658,18 @@
             { name: "Square", points: [{x:20,y:20}, {x:80,y:20}, {x:80,y:80}, {x:20,y:80}, {x:20,y:20}], bonus: 400},
             { name: "Zig-Zag", points: [{x:10,y:20}, {x:90,y:20}, {x:10,y:50}, {x:90,y:50}, {x:10,y:80}], bonus: 350 }
         ];
-        let activeSketchQuests = []; // Stores current quests with their state
+        let activeSketchQuests = [];
 
-
-        // --- Canvas Setup ---
         function resizeDrawingCanvas() {
             drawingCanvas.width = gameContainer.offsetWidth;
             drawingCanvas.height = gameContainer.offsetHeight;
-            player.x = gameContainer.offsetWidth / 2; // Initialize player pos after resize
+            player.x = gameContainer.offsetWidth / 2;
             player.y = gameContainer.offsetHeight / 2;
+            playerCursor.style.left = `${player.x}px`;
+            playerCursor.style.top = `${player.y}px`;
         }
         window.addEventListener('resize', resizeDrawingCanvas);
 
-
-        // --- Core Game Logic ---
         function updatePlayerPosition(event) {
             const rect = gameContainer.getBoundingClientRect();
             const newX = event.clientX - rect.left;
@@ -312,7 +682,6 @@
             playerCursor.style.top = `${player.y}px`;
 
             if (isDrawing && gameActive) {
-                // Add a new line segment to be rendered in the game loop
                 drawnLines.push({
                     start: { ...lastPlayerDrawPos },
                     end: { x: player.x, y: player.y },
@@ -323,86 +692,133 @@
             }
         }
 
-        function spawnVolley() { /* ... (same as before) ... */
+        function spawnVolley() {
             if (bullets.length + bulletsPerVolley > maxBulletsOnScreen && gameActive) return;
             for (let i = 0; i < bulletsPerVolley; i++) spawnSingleBullet();
         }
-        function spawnSingleBullet() { /* ... (same as before) ... */
-            const bullet = document.createElement('div'); bullet.classList.add('bullet');
-            let spawnEdge = Math.floor(Math.random() * 4); let x, y;
-            const targetX = player.x; const targetY = player.y; const offset = 10;
+
+        function spawnSingleBullet() {
+            const bullet = document.createElement('div');
+            bullet.classList.add('bullet');
+            let spawnEdge = Math.floor(Math.random() * 4);
+            let x;
+            let y;
+            const targetX = player.x;
+            const targetY = player.y;
+            const offset = 10;
+
             switch (spawnEdge) {
-                case 0: x = Math.random() * gameContainer.offsetWidth; y = -offset; break;
-                case 1: x = gameContainer.offsetWidth + offset; y = Math.random() * gameContainer.offsetHeight; break;
-                case 2: x = Math.random() * gameContainer.offsetWidth; y = gameContainer.offsetHeight + offset; break;
-                case 3: x = -offset; y = Math.random() * gameContainer.offsetHeight; break;
+                case 0:
+                    x = Math.random() * gameContainer.offsetWidth;
+                    y = -offset;
+                    break;
+                case 1:
+                    x = gameContainer.offsetWidth + offset;
+                    y = Math.random() * gameContainer.offsetHeight;
+                    break;
+                case 2:
+                    x = Math.random() * gameContainer.offsetWidth;
+                    y = gameContainer.offsetHeight + offset;
+                    break;
+                default:
+                    x = -offset;
+                    y = Math.random() * gameContainer.offsetHeight;
             }
+
             let angleToPlayer = Math.atan2(targetY - y, targetX - x);
-            if (bulletsPerVolley > 1) angleToPlayer += (Math.random() - 0.5) * (0.2 * Math.min(bulletsPerVolley, 5));
-            else angleToPlayer += (Math.random() - 0.5) * 0.3;
-            const dx = Math.cos(angleToPlayer) * baseBulletSpeed; const dy = Math.sin(angleToPlayer) * baseBulletSpeed;
-            bullet.style.left = `${x}px`; bullet.style.top = `${y}px`;
-            bullets.push({ element: bullet, x, y, dx, dy, radius: 4 }); gameContainer.appendChild(bullet);
+            if (bulletsPerVolley > 1) {
+                angleToPlayer += (Math.random() - 0.5) * (0.2 * Math.min(bulletsPerVolley, 5));
+            } else {
+                angleToPlayer += (Math.random() - 0.5) * 0.3;
+            }
+
+            const dx = Math.cos(angleToPlayer) * baseBulletSpeed;
+            const dy = Math.sin(angleToPlayer) * baseBulletSpeed;
+            bullet.style.left = `${x}px`;
+            bullet.style.top = `${y}px`;
+            bullets.push({ element: bullet, x, y, dx, dy, radius: 4 });
+            gameContainer.appendChild(bullet);
         }
-        function spawnOrb() { /* ... (same as before) ... */
+
+        function spawnOrb() {
             if (orbs.length >= maxOrbsOnScreen || !gameActive) return;
-            const orb = document.createElement('div'); orb.classList.add('orb');
-            const padding = 30; const x = padding + Math.random() * (gameContainer.offsetWidth - 2 * padding);
+            const orb = document.createElement('div');
+            orb.classList.add('orb');
+            const padding = 30;
+            const x = padding + Math.random() * (gameContainer.offsetWidth - 2 * padding);
             const y = padding + Math.random() * (gameContainer.offsetHeight - 2 * padding);
-            orb.style.left = `${x}px`; orb.style.top = `${y}px`;
+            orb.style.left = `${x}px`;
+            orb.style.top = `${y}px`;
             const spawnTime = performance.now();
-            orbs.push({ element: orb, x, y, radius: 6, spawnTime }); gameContainer.appendChild(orb);
-            requestAnimationFrame(() => { setTimeout(() => orb.classList.add('visible'), 50); });
+            orbs.push({ element: orb, x, y, radius: 6, spawnTime });
+            gameContainer.appendChild(orb);
+            requestAnimationFrame(() => {
+                setTimeout(() => orb.classList.add('visible'), 50);
+            });
         }
 
-
-        function updateBulletsAndOrbs(timestamp) { /* ... (mostly same) ... */
+        function updateBulletsAndOrbs(timestamp) {
             for (let i = bullets.length - 1; i >= 0; i--) {
-                const bullet = bullets[i]; bullet.x += bullet.dx; bullet.y += bullet.dy;
-                bullet.element.style.left = `${bullet.x}px`; bullet.element.style.top = `${bullet.y}px`;
+                const bullet = bullets[i];
+                bullet.x += bullet.dx;
+                bullet.y += bullet.dy;
+                bullet.element.style.left = `${bullet.x}px`;
+                bullet.element.style.top = `${bullet.y}px`;
+
                 const distToPlayer = Math.sqrt(Math.pow(player.x - (bullet.x + bullet.radius), 2) + Math.pow(player.y - (bullet.y + bullet.radius), 2));
-                if (distToPlayer < player.radius + bullet.radius) { gameOver(); return; }
+                if (distToPlayer < player.radius + bullet.radius) {
+                    gameOver();
+                    return;
+                }
+
                 if (bullet.x < -50 || bullet.x > gameContainer.offsetWidth + 50 || bullet.y < -50 || bullet.y > gameContainer.offsetHeight + 50) {
-                    bullet.element.remove(); bullets.splice(i, 1);
+                    bullet.element.remove();
+                    bullets.splice(i, 1);
                 }
             }
+
             for (let i = orbs.length - 1; i >= 0; i--) {
                 const orb = orbs[i];
                 const distToPlayer = Math.sqrt(Math.pow(player.x - (orb.x + orb.radius), 2) + Math.pow(player.y - (orb.y + orb.radius), 2));
+
                 if (distToPlayer < player.radius + orb.radius) {
-                    score += orbValue; scoreDisplaySpan.textContent = score; orb.element.remove(); orbs.splice(i, 1);
+                    score += orbValue;
+                    scoreDisplaySpan.textContent = score;
+                    orb.element.remove();
+                    orbs.splice(i, 1);
                 } else if (timestamp - orb.spawnTime > orbLifetime) {
-                    orb.element.style.opacity = 0; setTimeout(() => { if(orb.element.parentNode) orb.element.remove(); }, 500); orbs.splice(i, 1);
+                    orb.element.style.opacity = 0;
+                    setTimeout(() => {
+                        if (orb.element.parentNode) orb.element.remove();
+                    }, 500);
+                    orbs.splice(i, 1);
                 }
             }
         }
 
-        function increaseDifficulty() { /* ... (same as before, can add sketch quest frequency here) ... */
-             if (elapsedTime > difficultyLevel * timeToNextLevel) {
+        function increaseDifficulty() {
+            if (elapsedTime > difficultyLevel * timeToNextLevel) {
                 difficultyLevel++;
                 if (difficultyLevel % 2 === 0 && bulletsPerVolley < 10) bulletsPerVolley++;
                 if (volleySpawnInterval > 400) volleySpawnInterval = Math.max(400, volleySpawnInterval * 0.95);
                 if (baseBulletSpeed < 3.5) baseBulletSpeed += 0.05;
                 if (maxBulletsOnScreen < 150) maxBulletsOnScreen = Math.min(150, 50 + difficultyLevel * 5);
                 if (orbSpawnInterval > 2000) orbSpawnInterval = Math.max(2000, orbSpawnInterval * 0.97);
-                if (sketchQuestInterval > 8000) sketchQuestInterval = Math.max(8000, sketchQuestInterval * 0.96); // Sketch quests more frequent
+                if (sketchQuestInterval > 8000) sketchQuestInterval = Math.max(8000, sketchQuestInterval * 0.96);
             }
         }
 
-        // --- Sketch Quest Logic ---
         function generateSketchQuest() {
-            if (activeSketchQuests.length >= 2 || !gameActive) return; // Limit active quests
+            if (activeSketchQuests.length >= 2 || !gameActive) return;
 
             const availableSketches = sketchDefinitions.filter(sd => !activeSketchQuests.find(aq => aq.name === sd.name));
             if (availableSketches.length === 0) return;
 
             const sketchDef = availableSketches[Math.floor(Math.random() * availableSketches.length)];
             const questId = `sketch-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-            // Scale points to game area (e.g., center it and use 60% of width/height)
             const gameW = gameContainer.offsetWidth;
             const gameH = gameContainer.offsetHeight;
-            const sketchAreaScale = 0.5; // Use 50% of game area for the sketch
+            const sketchAreaScale = 0.5;
             const sketchAreaW = gameW * sketchAreaScale;
             const sketchAreaH = gameH * sketchAreaScale;
             const offsetX = (gameW - sketchAreaW) / 2;
@@ -418,52 +834,97 @@
                 id: questId,
                 name: sketchDef.name,
                 definition: sketchDef,
-                scaledPoints: scaledPoints,
+                scaledPoints,
                 currentPointIndex: 0,
                 completed: false,
-                domElement: null, // Will be created by renderSketchQuests
-                targetPointIndicators: [] // DOM elements for this quest's points
+                domElement: null,
+                targetPointIndicators: []
             };
             activeSketchQuests.push(newQuest);
             renderSketchQuests();
             displaySketchTargetPoints(newQuest);
         }
 
+        function drawPreview(canvas, points) {
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            ctx.clearRect(0, 0, width, height);
+            ctx.strokeStyle = 'rgba(45, 247, 239, 0.92)';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.shadowColor = 'rgba(45, 247, 239, 0.5)';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            points.forEach((point, index) => {
+                const x = 12 + (point.x / 100) * (width - 24);
+                const y = 10 + (point.y / 100) * (height - 20);
+                if (index === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+        }
+
         function renderSketchQuests() {
             sketchQuestListEl.innerHTML = '';
+            questCountEl.textContent = activeSketchQuests.length;
+
+            if (activeSketchQuests.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'empty-quests';
+                empty.textContent = gameActive ? 'New sketches are being drafted. Keep moving.' : 'Start a run to receive shape contracts.';
+                sketchQuestListEl.appendChild(empty);
+                return;
+            }
+
             activeSketchQuests.forEach(quest => {
                 const item = document.createElement('div');
                 item.classList.add('sketch-quest-item');
                 item.id = quest.id;
                 if (quest.completed) item.classList.add('completed');
 
-                const title = document.createElement('p');
-                title.innerHTML = `<strong>${quest.name}</strong> (${quest.currentPointIndex}/${quest.scaledPoints.length -1} seg.)`;
-                item.appendChild(title);
+                const progressTotal = quest.scaledPoints.length;
+                const progress = Math.min(100, Math.round((quest.currentPointIndex / progressTotal) * 100));
+                item.style.setProperty('--progress', `${progress}%`);
 
-                // Simple preview (dots for now, could be a mini canvas drawing later)
-                const preview = document.createElement('div');
+                const top = document.createElement('div');
+                top.className = 'quest-card-top';
+
+                const title = document.createElement('div');
+                title.innerHTML = `<div class="quest-name">${quest.name}</div><div class="stat-label">${quest.currentPointIndex}/${progressTotal} points</div>`;
+                top.appendChild(title);
+
+                const reward = document.createElement('div');
+                reward.className = 'quest-reward';
+                reward.textContent = `+${quest.definition.bonus}`;
+                top.appendChild(reward);
+                item.appendChild(top);
+
+                const progressBar = document.createElement('div');
+                progressBar.className = 'quest-progress';
+                progressBar.innerHTML = '<span></span>';
+                item.appendChild(progressBar);
+
+                const preview = document.createElement('canvas');
                 preview.classList.add('sketch-preview');
-                // For a better preview, you'd draw on a small canvas here
-                // For now, just a placeholder
-                let pointsStr = quest.definition.points.map(p => `(${p.x},${p.y})`).join(', ');
-                preview.textContent = `Target: ${pointsStr.substring(0, 20)}...`; // Basic preview
-                preview.title = pointsStr; // Full points on hover
+                preview.width = 220;
+                preview.height = 76;
                 item.appendChild(preview);
 
                 quest.domElement = item;
                 sketchQuestListEl.appendChild(item);
+                drawPreview(preview, quest.definition.points);
             });
         }
 
         function displaySketchTargetPoints(quest) {
-            // Clear previous target points for this quest if any
             quest.targetPointIndicators.forEach(indicator => indicator.remove());
             quest.targetPointIndicators = [];
 
             if (quest.completed) return;
 
-            quest.scaledPoints.forEach((point, index) => {
+            quest.scaledPoints.forEach(point => {
                 const indicator = document.createElement('div');
                 indicator.classList.add('target-point-indicator');
                 indicator.style.left = `${point.x}px`;
@@ -481,29 +942,28 @@
                 if (quest.completed) return;
 
                 const targetPoint = quest.scaledPoints[quest.currentPointIndex];
-                if (!targetPoint || targetPoint.hit) return; // Already hit or no more points
+                if (!targetPoint || targetPoint.hit) return;
 
                 const dist = Math.sqrt(Math.pow(player.x - targetPoint.x, 2) + Math.pow(player.y - targetPoint.y, 2));
 
                 if (dist < sketchPointHitRadius) {
                     targetPoint.hit = true;
-                    quest.targetPointIndicators[quest.currentPointIndex]?.classList.add('hit'); // Update visual
+                    quest.targetPointIndicators[quest.currentPointIndex]?.classList.add('hit');
                     score += sketchSegmentPoints;
                     quest.currentPointIndex++;
 
-                    if (quest.currentPointIndex >= quest.scaledPoints.length) { // All points hit
+                    if (quest.currentPointIndex >= quest.scaledPoints.length) {
                         quest.completed = true;
-                        score += quest.definition.bonus; // Main bonus for completion
-                        // Clear target points for this completed quest from game screen
+                        score += quest.definition.bonus;
                         quest.targetPointIndicators.forEach(indicator => indicator.remove());
                         quest.targetPointIndicators = [];
-                        // Remove from active quests after a delay or make it visually distinct
                         setTimeout(() => {
                             activeSketchQuests = activeSketchQuests.filter(q => q.id !== quest.id);
                             renderSketchQuests();
-                        }, 2000); // Remove from list after 2s
+                        }, 2000);
                     }
-                    renderSketchQuests(); // Update UI
+
+                    renderSketchQuests();
                     scoreDisplaySpan.textContent = score;
                 }
             });
@@ -514,35 +974,33 @@
         }
 
         function drawAndFadeLines() {
-            // We must clear the canvas each frame before redrawing lines
             clearDrawingCanvas();
 
             const now = performance.now();
             drawingCtx.lineWidth = 3;
-            drawingCtx.lineCap = 'round'; // Makes lines look smoother
+            drawingCtx.lineCap = 'round';
 
             for (let i = drawnLines.length - 1; i >= 0; i--) {
                 const line = drawnLines[i];
                 const age = now - line.timestamp;
 
                 if (age > lineFadeTime) {
-                    drawnLines.splice(i, 1); // Remove old line
+                    drawnLines.splice(i, 1);
                     continue;
                 }
 
-                // Calculate opacity - fades out over the line's lifetime
-                const opacity = 0.7 * (1 - (age / lineFadeTime));
-
+                const opacity = 0.78 * (1 - (age / lineFadeTime));
                 drawingCtx.beginPath();
                 drawingCtx.moveTo(line.start.x, line.start.y);
                 drawingCtx.lineTo(line.end.x, line.end.y);
-                drawingCtx.strokeStyle = `rgba(0, 255, 255, ${opacity})`;
+                drawingCtx.strokeStyle = `rgba(45, 247, 239, ${opacity})`;
+                drawingCtx.shadowColor = `rgba(45, 247, 239, ${opacity})`;
+                drawingCtx.shadowBlur = 8;
                 drawingCtx.stroke();
+                drawingCtx.shadowBlur = 0;
             }
         }
 
-
-        // --- Game Loop & State Management ---
         function gameLoop(timestamp) {
             if (!gameActive) return;
             if (!startTime) startTime = timestamp;
@@ -554,75 +1012,104 @@
             score += Math.floor(10 * deltaTime);
             scoreDisplaySpan.textContent = score;
 
-            if (timestamp - lastVolleySpawnTime > volleySpawnInterval) { spawnVolley(); lastVolleySpawnTime = timestamp; }
-            if (timestamp - lastOrbSpawnTime > orbSpawnInterval) { spawnOrb(); lastOrbSpawnTime = timestamp; }
-            if (timestamp - lastSketchQuestTime > sketchQuestInterval) { generateSketchQuest(); lastSketchQuestTime = timestamp; }
+            if (timestamp - lastVolleySpawnTime > volleySpawnInterval) {
+                spawnVolley();
+                lastVolleySpawnTime = timestamp;
+            }
+            if (timestamp - lastOrbSpawnTime > orbSpawnInterval) {
+                spawnOrb();
+                lastOrbSpawnTime = timestamp;
+            }
+            if (timestamp - lastSketchQuestTime > sketchQuestInterval) {
+                generateSketchQuest();
+                lastSketchQuestTime = timestamp;
+            }
 
-            drawAndFadeLines(); // Redraws the fading lines each frame
+            drawAndFadeLines();
             updateBulletsAndOrbs(timestamp);
             increaseDifficulty();
-            // Sketch points are checked during player mouse move if isDrawing
-
             animationFrameId = requestAnimationFrame(gameLoop);
         }
 
-        function resetGame() { /* ... (mostly same, add sketch quest reset) ... */
+        function resetGame() {
             gameActive = false;
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            bullets.forEach(b => b.element.remove()); bullets = [];
-            orbs.forEach(o => o.element.remove()); orbs = [];
+            bullets.forEach(b => b.element.remove());
+            bullets = [];
+            orbs.forEach(o => o.element.remove());
+            orbs = [];
             activeSketchQuests.forEach(q => {
                 q.targetPointIndicators.forEach(indicator => indicator.remove());
             });
-            activeSketchQuests = []; sketchTargetPointIndicators.forEach(i => i.remove()); sketchTargetPointIndicators = [];
+            activeSketchQuests = [];
+            sketchTargetPointIndicators.forEach(i => i.remove());
+            sketchTargetPointIndicators = [];
 
+            startTime = null;
+            elapsedTime = 0;
+            score = 0;
+            lastVolleySpawnTime = 0;
+            lastOrbSpawnTime = 0;
+            lastSketchQuestTime = 0;
 
-            startTime = null; elapsedTime = 0; score = 0;
-            lastVolleySpawnTime = 0; lastOrbSpawnTime = 0; lastSketchQuestTime = 0; // Reset sketch quest timer
+            baseBulletSpeed = 2.0;
+            volleySpawnInterval = 1500;
+            bulletsPerVolley = 1;
+            maxBulletsOnScreen = 50;
+            difficultyLevel = 1;
+            timeToNextLevel = 10;
+            orbSpawnInterval = 5000;
+            sketchQuestInterval = 15000;
 
-            baseBulletSpeed = 2.0; volleySpawnInterval = 1500; bulletsPerVolley = 1;
-            maxBulletsOnScreen = 50; difficultyLevel = 1; timeToNextLevel = 10;
-            orbSpawnInterval = 5000; sketchQuestInterval = 15000; // Reset sketch interval
-
-            timerDisplaySpan.textContent = '0.00s'; scoreDisplaySpan.textContent = '0';
-            drawnLines = []; // Clear any leftover lines
+            timerDisplaySpan.textContent = '0.00s';
+            scoreDisplaySpan.textContent = '0';
+            drawnLines = [];
             clearDrawingCanvas();
-            renderSketchQuests(); // Clear quest list UI
+            renderSketchQuests();
         }
 
-        function startGame() { /* ... (same) ... */
+        function startGame() {
             if (gameActive) return;
             resetGame();
             gameActive = true;
-            instructions.style.display = 'none'; gameOverMessage.style.display = 'none';
-            startButton.style.display = 'none'; retryButton.style.display = 'none';
-            gameContainer.style.cursor = 'none'; // Set on game container
-            playerCursor.style.left = `${player.x}px`; playerCursor.style.top = `${player.y}px`;
+            instructions.style.display = 'block';
+            instructions.textContent = 'Run live. Draw quests while dodging incoming fire.';
+            gameOverMessage.style.display = 'none';
+            startButton.style.display = 'none';
+            retryButton.style.display = 'none';
+            gameContainer.style.cursor = 'none';
+            document.body.style.cursor = 'none';
+            playerCursor.style.left = `${player.x}px`;
+            playerCursor.style.top = `${player.y}px`;
+            renderSketchQuests();
             animationFrameId = requestAnimationFrame(gameLoop);
         }
-        function gameOver() { /* ... (same) ... */
-            if (!gameActive) return; gameActive = false;
+
+        function gameOver() {
+            if (!gameActive) return;
+            gameActive = false;
             cancelAnimationFrame(animationFrameId);
-            gameOverMessage.innerHTML = `Game Over! Final Score: <span style="color:gold;">${score}</span> | Survived: <span style="color:limegreen;">${elapsedTime.toFixed(2)}s</span>`;
-            gameOverMessage.style.display = 'block'; retryButton.style.display = 'inline-block';
-            gameContainer.style.cursor = 'default'; document.body.style.cursor = 'default';
-            isDrawing = false; // Stop drawing on game over
+            instructions.style.display = 'none';
+            gameOverMessage.innerHTML = `Game Over. Final score <span style="color:var(--gold);">${score}</span> | survived <span style="color:var(--green);">${elapsedTime.toFixed(2)}s</span>`;
+            gameOverMessage.style.display = 'block';
+            retryButton.style.display = 'inline-block';
+            startButton.textContent = 'New Run';
+            gameContainer.style.cursor = 'default';
+            document.body.style.cursor = 'default';
+            isDrawing = false;
+            renderSketchQuests();
         }
 
-        // --- Event Listeners ---
-        // Mouse move for player cursor and drawing line
-        document.addEventListener('mousemove', (event) => { // Listen on document for smoother drawing start/end
-            updatePlayerPosition(event);
-        });
+        document.addEventListener('mousemove', updatePlayerPosition);
 
-        // Mouse down/up for drawing mode
-        gameContainer.addEventListener('mousedown', (event) => {
-            if (event.button === 0 && gameActive) { // Left mouse button
+        gameContainer.addEventListener('mousedown', event => {
+            if (event.button === 0 && gameActive) {
                 isDrawing = true;
                 lastPlayerDrawPos = { x: player.x, y: player.y };
             }
         });
-        document.addEventListener('mouseup', (event) => { // Listen on document so if mouse moves out of gamecontainer it still registers
+
+        document.addEventListener('mouseup', event => {
             if (event.button === 0 && isDrawing) {
                 isDrawing = false;
                 lastPlayerDrawPos = null;
@@ -632,11 +1119,8 @@
         startButton.addEventListener('click', startGame);
         retryButton.addEventListener('click', startGame);
 
-        // --- Initial Setup ---
-        resizeDrawingCanvas(); // Set initial canvas size and player position
-        playerCursor.style.left = `${player.x}px`;
-        playerCursor.style.top = `${player.y}px`;
-        renderSketchQuests(); // Initial render (empty)
+        resizeDrawingCanvas();
+        renderSketchQuests();
     </script>
 </body>
 </html>
