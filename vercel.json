@@ -1,0 +1,35 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/cursora/",
+      "permanent": false
+    },
+    {
+      "source": "/cursora",
+      "destination": "/cursora/",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/cursora/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/cursora/:path*",
+      "destination": "/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/cursora/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ]
+}
