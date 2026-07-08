@@ -1,5 +1,6 @@
 import { HeuristicSketchRecognizer, SKETCH_CATEGORIES } from "./recognizer.js";
 import { SketchPad } from "./sketch.js";
+import { LocalTrainingDataStore } from "./trainingData.js";
 
 const $ = selector => document.querySelector(selector);
 const elements = {
@@ -13,10 +14,13 @@ const elements = {
     start: $("#startButton"),
     retry: $("#retryButton"),
     clear: $("#clearDrawingButton"),
+    exportTraining: $("#exportTrainingButton"),
     target: $("#targetPrompt"),
     promptTimer: $("#promptTimer"),
+    countdown: $("#promptCountdown"),
     completed: $("#completedCount"),
     streak: $("#streakCount"),
+    trainingCount: $("#trainingCount"),
     tier: $("#missionTier"),
     guesses: $("#guessList"),
     guessPhrase: $("#guessPhrase"),
@@ -29,13 +33,15 @@ const elements = {
     hint: $("#drawingHint")
 };
 
+const debug = new URLSearchParams(window.location.search).has("debug");
 const sketchPad = new SketchPad(elements.canvas);
-const recognizer = new HeuristicSketchRecognizer({
-    debug: new URLSearchParams(window.location.search).has("debug")
-});
+const recognizer = new HeuristicSketchRecognizer({ debug });
+const trainingStore = new LocalTrainingDataStore({ debug });
 
 const RECOGNITION_INTERVAL = 700;
 const COMPLETION_THRESHOLD = 0.65;
+const PROMPT_DURATION = 20000;
+const NEXT_PROMPT_DELAY = 850;
 const ORB_VALUE = 100;
 const MAX_ORBS = 5;
 const ORB_LIFETIME = 8000;
@@ -82,7 +88,8 @@ function freshState() {
         streak: 0,
         lastRecognition: 0,
         recognitionPending: false,
-        missionLocked: false
+        missionLocked: false,
+        lastPredictions: []
     };
 }
 
@@ -117,13 +124,19 @@ function choosePrompt() {
     state.promptStarted = performance.now();
     state.lastRecognition = 0;
     state.missionLocked = false;
+    state.lastPredictions = [];
     elements.target.textContent = `Draw a ${state.target}`;
     elements.hint.textContent = PROMPT_TIPS[state.target];
+    elements.countdown.textContent = `${(PROMPT_DURATION / 1000).toFixed(1)}s`;
     resetRecognitionUI();
 }
 
+function emptyGuessRows() {
+    return Array.from({ length: 3 }, () => "<li><span>—</span><strong>0%</strong></li>").join("");
+}
+
 function resetRecognitionUI() {
-    elements.guesses.innerHTML = Array.from({ length: 3 }, () => "<li><span>—</span><strong>0%</strong></li>").join("");
+    elements.guesses.innerHTML = emptyGuessRows();
     elements.guessPhrase.textContent = state.active ? "AI is waiting for ink…" : "AI is offline";
     elements.confidence.textContent = "0%";
     elements.confidenceFill.style.width = "0%";
@@ -133,6 +146,7 @@ function resetRecognitionUI() {
 }
 
 function renderPredictions(predictions) {
+    state.lastPredictions = predictions;
     const top = predictions.slice(0, 3);
     elements.guesses.innerHTML = top.map(prediction => {
         const percent = Math.round(prediction.confidence * 100);
@@ -187,8 +201,57 @@ async function runRecognition(timestamp) {
     }
 }
 
+function stopDrawingInput() {
+    if (state.pointerId !== null) {
+        if (elements.game.hasPointerCapture(state.pointerId)) {
+            elements.game.releasePointerCapture(state.pointerId);
+        }
+        state.pointerId = null;
+    }
+    sketchPad.end();
+}
+
+function cloneStrokes() {
+    return sketchPad.strokes.map(stroke => stroke.map(point => ({ ...point })));
+}
+
+function buildTrainingExample(outcome) {
+    return {
+        label: state.target,
+        outcome,
+        durationMs: performance.now() - state.promptStarted,
+        canvas: {
+            width: elements.game.clientWidth,
+            height: elements.game.clientHeight
+        },
+        predictions: state.lastPredictions,
+        strokes: cloneStrokes()
+    };
+}
+
+async function refreshTrainingCount() {
+    const count = await trainingStore.count();
+    elements.trainingCount.textContent = count;
+    elements.exportTraining.disabled = count === 0;
+}
+
+async function saveMissedTrainingExample() {
+    if (sketchPad.pointCount < 8) return false;
+    await trainingStore.saveExample(buildTrainingExample("missed"));
+    await refreshTrainingCount();
+    return true;
+}
+
+function showMissionFlash(message) {
+    elements.flash.textContent = message;
+    elements.flash.classList.remove("show");
+    void elements.flash.offsetWidth;
+    elements.flash.classList.add("show");
+}
+
 function completeMission(prediction) {
     state.missionLocked = true;
+    stopDrawingInput();
     const promptSeconds = Math.max(1, (performance.now() - state.promptStarted) / 1000);
     const speedBonus = Math.max(0, Math.round(900 - promptSeconds * 35));
     const tierBonus = state.difficulty * 125;
@@ -200,10 +263,7 @@ function completeMission(prediction) {
     elements.score.textContent = Math.floor(state.score);
     elements.completed.textContent = state.completed;
     elements.streak.textContent = state.streak;
-    elements.flash.textContent = `Recognized: ${prediction.label}! +${reward}`;
-    elements.flash.classList.remove("show");
-    void elements.flash.offsetWidth;
-    elements.flash.classList.add("show");
+    showMissionFlash(`Recognized: ${prediction.label}! +${reward}`);
 
     const removalCount = Math.ceil(state.bullets.length * 0.2);
     for (let index = 0; index < removalCount; index += 1) {
@@ -219,7 +279,40 @@ function completeMission(prediction) {
         sketchPad.clear();
         elements.clear.disabled = true;
         choosePrompt();
-    }, 850);
+    }, NEXT_PROMPT_DELAY);
+}
+
+function expireMission() {
+    if (!state.active || state.missionLocked) return;
+    const expiredTarget = state.target;
+    state.missionLocked = true;
+    stopDrawingInput();
+    state.streak = 0;
+    elements.streak.textContent = state.streak;
+    elements.clear.disabled = true;
+    elements.thinking.classList.remove("active");
+    elements.recognitionCard.classList.remove("close");
+
+    void saveMissedTrainingExample()
+        .then(saved => {
+            if (!state.active || state.target !== expiredTarget) return;
+            showMissionFlash(saved ? `Time! Saved ${expiredTarget} reference.` : "Time! Next drawing.");
+            elements.guessPhrase.textContent = saved
+                ? "Missed sketch saved locally for future training."
+                : "No usable sketch to save. Next prompt incoming.";
+        })
+        .catch(error => {
+            console.warn("Could not save missed sketch:", error);
+            if (!state.active || state.target !== expiredTarget) return;
+            showMissionFlash("Time! Next drawing.");
+            elements.guessPhrase.textContent = "Could not save this reference locally.";
+        });
+
+    window.setTimeout(() => {
+        if (!state.active) return;
+        sketchPad.clear();
+        choosePrompt();
+    }, NEXT_PROMPT_DELAY);
 }
 
 function spawnBullet() {
@@ -320,7 +413,12 @@ function loop(timestamp) {
     state.score += Math.max(0, state.elapsed - previousElapsed) * 10;
     elements.timer.textContent = `${state.elapsed.toFixed(2)}s`;
     elements.score.textContent = Math.floor(state.score);
-    elements.promptTimer.textContent = `${Math.max(0, (timestamp - state.promptStarted) / 1000).toFixed(1)}s`;
+
+    const promptAge = Math.max(0, timestamp - state.promptStarted);
+    const promptSeconds = promptAge / 1000;
+    const timeLeft = Math.max(0, PROMPT_DURATION - promptAge) / 1000;
+    elements.promptTimer.textContent = `${promptSeconds.toFixed(1)}s`;
+    elements.countdown.textContent = `${timeLeft.toFixed(1)}s`;
 
     if (timestamp - state.lastVolley > state.volleyInterval) {
         spawnVolley();
@@ -332,6 +430,7 @@ function loop(timestamp) {
     }
     if (!updateEntities(timestamp)) return;
     increaseDifficulty();
+    if (promptAge >= PROMPT_DURATION) expireMission();
     runRecognition(timestamp);
     state.frame = requestAnimationFrame(loop);
 }
@@ -350,6 +449,7 @@ function resetGame() {
     elements.timer.textContent = "0.00s";
     elements.score.textContent = "0";
     elements.promptTimer.textContent = "0.0s";
+    elements.countdown.textContent = `${(PROMPT_DURATION / 1000).toFixed(1)}s`;
     elements.completed.textContent = "0";
     elements.streak.textContent = "0";
     elements.tier.textContent = "Tier 1";
@@ -360,13 +460,14 @@ function resetGame() {
 function startGame() {
     resetGame();
     state.active = true;
-    elements.instructions.textContent = "Run live. Hold to draw, keep moving, and convince the AI.";
+    elements.instructions.textContent = "Run live. You have 20 seconds per prompt: draw, dodge, then roll into the next object.";
     elements.instructions.hidden = false;
     elements.gameOver.hidden = true;
     elements.start.hidden = true;
     elements.retry.hidden = true;
     document.body.style.cursor = "none";
     choosePrompt();
+    void refreshTrainingCount();
     state.frame = requestAnimationFrame(loop);
 }
 
@@ -389,7 +490,7 @@ function gameOver() {
 elements.game.addEventListener("pointermove", event => {
     const point = pointFromEvent(event);
     updatePlayer(point);
-    if (state.active && state.pointerId === event.pointerId) {
+    if (state.active && !state.missionLocked && state.pointerId === event.pointerId) {
         sketchPad.add(point);
         elements.clear.disabled = false;
     }
@@ -424,9 +525,13 @@ elements.clear.addEventListener("click", () => {
     elements.clear.disabled = true;
     resetRecognitionUI();
 });
+elements.exportTraining.addEventListener("click", () => {
+    void trainingStore.exportExamples();
+});
 window.addEventListener("resize", resize);
 
 state = freshState();
 resize();
 updatePlayer({ ...state.player });
 resetRecognitionUI();
+void refreshTrainingCount();

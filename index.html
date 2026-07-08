@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Cursora: draw what the AI asks for while surviving a neon bullet storm.">
     <title>Cursora — Draw & Survive</title>
-    <link rel="icon" type="image/png" href="/cursora/favicon.png">
-    <link rel="stylesheet" href="/cursora/styles.css">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <main class="app-shell">
@@ -25,9 +25,11 @@
                 <div class="target-label">Your target</div>
                 <h2 id="targetPrompt">Start a run</h2>
                 <div class="mission-meta">
+                    <span>Time left <strong id="promptCountdown">20.0s</strong></span>
                     <span>Prompt time <strong id="promptTimer">0.0s</strong></span>
                     <span>Completed <strong id="completedCount">0</strong></span>
                     <span>Streak <strong id="streakCount">0</strong></span>
+                    <span>Training refs <strong id="trainingCount">0</strong></span>
                 </div>
             </section>
 
@@ -51,7 +53,8 @@
             </section>
 
             <button id="clearDrawingButton" class="button secondary clear-button" type="button" disabled>Clear drawing</button>
-            <p id="drawingHint" class="drawing-hint">Draw clearly. The AI reads your strokes, not perfect art.</p>
+            <button id="exportTrainingButton" class="button secondary clear-button" type="button" disabled>Export training refs</button>
+            <p id="drawingHint" class="drawing-hint">Draw clearly. You get 20 seconds; if the AI misses it, Cursora saves the sketch locally as training reference data.</p>
         </aside>
 
         <section class="game-panel">
@@ -86,6 +89,6 @@
         </section>
     </main>
 
-    <script type="module" src="/cursora/src/game.js"></script>
+    <script type="module" src="src/game.js"></script>
 </body>
 </html>
