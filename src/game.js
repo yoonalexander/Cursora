@@ -1,4 +1,4 @@
-import { HeuristicSketchRecognizer, SKETCH_CATEGORIES } from "./recognizer.js";
+import { createSketchRecognizer, HeuristicSketchRecognizer, SKETCH_CATEGORIES } from "./recognizer.js";
 import { SketchPad } from "./sketch.js";
 import { LocalTrainingDataStore } from "./trainingData.js";
 
@@ -35,7 +35,7 @@ const elements = {
 
 const debug = new URLSearchParams(window.location.search).has("debug");
 const sketchPad = new SketchPad(elements.canvas);
-const recognizer = new HeuristicSketchRecognizer({ debug });
+let recognizer = new HeuristicSketchRecognizer({ debug });
 const trainingStore = new LocalTrainingDataStore({ debug });
 
 const RECOGNITION_INTERVAL = 700;
@@ -198,6 +198,16 @@ async function runRecognition(timestamp) {
     } finally {
         state.recognitionPending = false;
         elements.thinking.classList.remove("active");
+    }
+}
+
+async function initializeRecognizer() {
+    try {
+        recognizer = await createSketchRecognizer({ debug });
+        if (debug) console.info(`Game recognizer ready: ${recognizer.activeRecognizer}`);
+    } catch (error) {
+        recognizer = new HeuristicSketchRecognizer({ debug });
+        if (debug) console.info("Game recognizer ready: heuristic fallback", error);
     }
 }
 
@@ -535,3 +545,4 @@ resize();
 updatePlayer({ ...state.player });
 resetRecognitionUI();
 void refreshTrainingCount();
+void initializeRecognizer();

@@ -1,3 +1,6 @@
+import { createInputTensor, DEFAULT_IMAGE_SIZE, preprocessNormalizedStrokes } from "./sketchPreprocessing.js";
+import { loadTensorFlowJs } from "./tfjsLoader.js";
+
 export const SKETCH_CATEGORIES = [
     "cat", "dog", "house", "tree", "car", "bicycle",
     "rocket", "fish", "robot", "hamburger", "star", "umbrella"
@@ -243,14 +246,107 @@ export class HeuristicSketchRecognizer extends SketchRecognizer {
     }
 }
 
-/**
- * Future adapter seam:
- * class TensorFlowSketchRecognizer extends SketchRecognizer {
- *   constructor(model) { super(); this.model = model; }
- *   async predict(strokes, width, height) {
- *     const normalized = normalizeStrokes(strokes, width, height);
- *     // Rasterize/encode `normalized`, call model.predict(), and return
- *     // [{ label, confidence }] sorted descending.
- *   }
- * }
- */
+export class TensorFlowSketchRecognizer extends SketchRecognizer {
+    constructor({
+        modelPath = "models/sketch-model/model.json",
+        labelsPath = "models/sketch-model/labels.json",
+        imageSize = DEFAULT_IMAGE_SIZE,
+        debug = false,
+        fallback = new HeuristicSketchRecognizer({ debug }),
+        tfLoader = loadTensorFlowJs,
+        fetcher = globalThis.fetch?.bind(globalThis)
+    } = {}) {
+        super();
+        this.modelPath = modelPath;
+        this.labelsPath = labelsPath;
+        this.imageSize = imageSize;
+        this.debug = debug;
+        this.fallback = fallback;
+        this.tfLoader = tfLoader;
+        this.fetcher = fetcher;
+        this.tf = null;
+        this.model = null;
+        this.labels = SKETCH_CATEGORIES;
+        this.activeRecognizer = "loading";
+        this.ready = this.load();
+    }
+
+    async load() {
+        try {
+            this.tf = await this.tfLoader();
+            this.labels = await this.loadLabels();
+            this.model = await this.tf.loadLayersModel(this.modelPath);
+            this.activeRecognizer = "tensorflow";
+            if (this.debug) {
+                console.info(`Sketch recognizer active: TensorFlow.js (${this.modelPath})`);
+                console.info("Neural recognizer labels:", this.labels);
+            }
+            return this;
+        } catch (error) {
+            this.model = null;
+            this.activeRecognizer = "heuristic";
+            if (this.debug) {
+                console.info("Sketch recognizer active: heuristic fallback");
+                console.info("Neural recognizer unavailable:", error.message);
+            }
+            return this;
+        }
+    }
+
+    async loadLabels() {
+        if (!this.fetcher) return SKETCH_CATEGORIES;
+        const response = await this.fetcher(this.labelsPath, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Could not load label mapping from ${this.labelsPath}`);
+        const labels = await response.json();
+        if (!Array.isArray(labels) || labels.length !== SKETCH_CATEGORIES.length) {
+            throw new Error("Neural label mapping must be an array matching SKETCH_CATEGORIES.");
+        }
+        const mismatches = labels.filter((label, index) => label !== SKETCH_CATEGORIES[index]);
+        if (mismatches.length) {
+            throw new Error("Neural label mapping order does not match SKETCH_CATEGORIES.");
+        }
+        return labels;
+    }
+
+    async predict(strokes, canvasWidth, canvasHeight) {
+        await this.ready;
+        if (!this.model || !this.tf) {
+            return this.fallback.predict(strokes, canvasWidth, canvasHeight);
+        }
+
+        const normalizedStrokes = normalizeStrokes(strokes, canvasWidth, canvasHeight);
+        const preprocessed = preprocessNormalizedStrokes(normalizedStrokes, { size: this.imageSize });
+        const input = createInputTensor(this.tf, preprocessed.pixels, { size: this.imageSize });
+
+        try {
+            const output = this.model.predict(input);
+            const tensor = Array.isArray(output) ? output[0] : output;
+            const values = Array.from(await tensor.data());
+            tensor.dispose?.();
+            const predictions = values
+                .slice(0, this.labels.length)
+                .map((confidence, index) => ({ label: this.labels[index], confidence: Number(confidence) || 0 }))
+                .sort((a, b) => b.confidence - a.confidence);
+
+            if (this.debug) {
+                console.info("Neural preprocessing:", {
+                    shape: preprocessed.shape,
+                    nonEmptyPixels: preprocessed.input.filter(Boolean).length
+                });
+                console.table(predictions.slice(0, 3));
+            }
+            return predictions;
+        } catch (error) {
+            if (this.debug) console.warn("Neural prediction failed; using heuristic fallback.", error);
+            return this.fallback.predict(strokes, canvasWidth, canvasHeight);
+        } finally {
+            input.dispose?.();
+        }
+    }
+}
+
+export async function createSketchRecognizer({ debug = false } = {}) {
+    const recognizer = new TensorFlowSketchRecognizer({ debug });
+    await recognizer.ready;
+    return recognizer;
+}

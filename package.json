@@ -3,6 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "create:dev-model": "node scripts/create-dev-sketch-model.mjs",
+    "train:sketch-model": "node scripts/train-sketch-model.mjs",
     "test": "node --test"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0"
   }
 }

@@ -3,8 +3,11 @@ import test from "node:test";
 import {
     extractSketchFeatures,
     HeuristicSketchRecognizer,
-    normalizeStrokes
+    normalizeStrokes,
+    SKETCH_CATEGORIES,
+    TensorFlowSketchRecognizer
 } from "../src/recognizer.js";
+import { preprocessNormalizedStrokes } from "../src/sketchPreprocessing.js";
 
 const stroke = points => points.map(([x, y], index) => ({ x, y, t: index * 16 }));
 
@@ -47,4 +50,63 @@ test("recognizer ranks representative sketches deterministically", async () => {
         assert.equal(first[0].label, label, `${label} was ranked as ${first[0]?.label}`);
         assert.ok(first[0].confidence >= 0.65, `${label} confidence was ${first[0].confidence}`);
     }
+});
+
+test("preprocessing creates browser model input shape", () => {
+    const normalized = normalizeStrokes(examples.house, 100, 100);
+    const preprocessed = preprocessNormalizedStrokes(normalized, { size: 28 });
+    assert.deepEqual(preprocessed.shape, [1, 28, 28, 1]);
+    assert.equal(preprocessed.input.length, 28 * 28);
+    assert.ok(preprocessed.input.some(value => value > 0));
+    assert.ok(preprocessed.input.every(value => value >= 0 && value <= 1));
+});
+
+test("tensorflow recognizer returns sorted prediction format", async () => {
+    const scores = SKETCH_CATEGORIES.map((_, index) => index / SKETCH_CATEGORIES.length);
+    const recognizer = new TensorFlowSketchRecognizer({
+        tfLoader: async () => ({
+            tensor4d: (values, shape) => ({ values, shape, dispose() {} }),
+            loadLayersModel: async () => ({
+                predict: input => {
+                    assert.deepEqual(input.shape, [1, 28, 28, 1]);
+                    return {
+                        async data() {
+                            return scores;
+                        },
+                        dispose() {}
+                    };
+                }
+            })
+        }),
+        fetcher: async () => ({
+            ok: true,
+            async json() {
+                return SKETCH_CATEGORIES;
+            }
+        })
+    });
+
+    const predictions = await recognizer.predict(examples.house, 100, 100);
+    assert.equal(predictions.length, SKETCH_CATEGORIES.length);
+    assert.deepEqual(Object.keys(predictions[0]), ["label", "confidence"]);
+    assert.equal(predictions[0].label, SKETCH_CATEGORIES.at(-1));
+    assert.ok(predictions.every((prediction, index) => index === 0 || prediction.confidence <= predictions[index - 1].confidence));
+});
+
+test("tensorflow recognizer falls back when model loading fails", async () => {
+    const recognizer = new TensorFlowSketchRecognizer({
+        tfLoader: async () => {
+            throw new Error("missing model");
+        }
+    });
+
+    const predictions = await recognizer.predict(examples.house, 100, 100);
+    assert.equal(recognizer.activeRecognizer, "heuristic");
+    assert.equal(predictions[0].label, "house");
+});
+
+test("neural label mapping matches SKETCH_CATEGORIES", () => {
+    const labels = [...SKETCH_CATEGORIES];
+    assert.deepEqual(labels, SKETCH_CATEGORIES);
+    assert.equal(new Set(labels).size, SKETCH_CATEGORIES.length);
 });
