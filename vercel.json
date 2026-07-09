@@ -5,6 +5,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/cursora/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/cursora/:path*",
       "destination": "/:path*"
     }
