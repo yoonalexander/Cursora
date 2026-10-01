@@ -142,7 +142,8 @@ the console for either:
 ## Structure
 
 - `index.html` - semantic game and mission HUD
-- `styles.css` - responsive neon/cyber sketch presentation
+- `styles.css` - shared paper/ink theme and responsive sketchbook game presentation
+- `store.css` - paper-style store layout and illustrated gameplay preview
 - `src/sketch.js` - persistent `{ x, y, t }` stroke capture and canvas rendering
 - `src/recognizer.js` - recognizer contract, heuristic adapter, TensorFlow.js adapter
 - `src/sketchPreprocessing.js` - shared neural preprocessing and rasterization

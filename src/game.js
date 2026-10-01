@@ -1,5 +1,5 @@
 import { createSketchRecognizer, HeuristicSketchRecognizer, SKETCH_CATEGORIES } from "./recognizer.js";
-import { SketchPad } from "./sketch.js";
+import { SketchPad } from "./sketch.js?v=paper-1";
 import { LocalTrainingDataStore } from "./trainingData.js";
 
 const $ = selector => document.querySelector(selector);
@@ -475,7 +475,7 @@ function startGame() {
     elements.gameOver.hidden = true;
     elements.start.hidden = true;
     elements.retry.hidden = true;
-    document.body.style.cursor = "none";
+    document.body.classList.add("is-playing", "has-started");
     choosePrompt();
     void refreshTrainingCount();
     state.frame = requestAnimationFrame(loop);
@@ -494,7 +494,7 @@ function gameOver() {
     elements.clear.disabled = true;
     elements.guessPhrase.textContent = "AI is offline";
     elements.thinking.classList.remove("active");
-    document.body.style.cursor = "default";
+    document.body.classList.remove("is-playing");
 }
 
 elements.game.addEventListener("pointermove", event => {
@@ -538,7 +538,9 @@ elements.clear.addEventListener("click", () => {
 elements.exportTraining.addEventListener("click", () => {
     void trainingStore.exportExamples();
 });
-window.addEventListener("resize", resize);
+// Keep the ink aligned when HUD text or responsive layout changes the sheet size.
+const arenaResizeObserver = new ResizeObserver(resize);
+arenaResizeObserver.observe(elements.game);
 
 state = freshState();
 resize();

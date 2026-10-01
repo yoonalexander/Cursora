@@ -59,12 +59,11 @@ export class SketchPad {
         const height = this.canvas.height / this.pixelRatio;
         const ctx = this.context;
         ctx.clearRect(0, 0, width, height);
-        ctx.lineWidth = 3.25;
+        ctx.lineWidth = 2.5;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-        ctx.strokeStyle = "rgba(45, 247, 239, 0.9)";
-        ctx.shadowColor = "rgba(45, 247, 239, 0.62)";
-        ctx.shadowBlur = 8;
+        ctx.strokeStyle = "rgba(48, 49, 47, 0.88)";
+        ctx.shadowBlur = 0;
 
         for (const stroke of this.strokes) {
             if (!stroke.length) continue;

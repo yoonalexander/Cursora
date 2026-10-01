@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Cursora: draw what the AI asks for while surviving a neon bullet storm.">
+    <meta name="description" content="Cursora: a blank page, a drawing prompt, and a little bullet-dodging chaos. Sketch and survive.">
     <title>Cursora</title>
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=paper-3">
 </head>
-<body>
+<body class="game-page">
     <main class="app-shell">
         <aside class="mission-panel" aria-label="Drawing mission">
             <div class="brand-lockup">
-                <div class="eyebrow">Quick Draw // Bullet Hell</div>
+                <div class="eyebrow">A sketch &amp; survive game</div>
                 <h1>Cursora</h1>
-                <p>Sketch under fire. Convince the local AI before the bullet storm catches you.</p>
+                <p>A little drawing. A little dodging.<br>Keep your pencil moving.</p>
             </div>
 
             <section class="mission-card" aria-live="polite">
                 <div class="section-heading">
-                    <span>Drawing Mission</span>
+                    <span>Your drawing prompt</span>
                     <span id="missionTier" class="tier-chip">Tier 1</span>
                 </div>
                 <div class="target-label">Your target</div>
@@ -52,15 +52,22 @@
                 </div>
             </section>
 
-            <button id="clearDrawingButton" class="button secondary clear-button" type="button" disabled>Clear drawing</button>
-            <button id="exportTrainingButton" class="button secondary clear-button" type="button" disabled>Export training refs</button>
-            <p id="drawingHint" class="drawing-hint">Draw clearly. You get 20 seconds; if the AI misses it, Cursora saves the sketch locally as training reference data.</p>
+            <div class="drawing-tools">
+                <button id="clearDrawingButton" class="button secondary clear-button" type="button" disabled>Clear drawing</button>
+                <p id="drawingHint" class="drawing-hint">Hold down and draw. You have 20 seconds to help the AI recognize each object.</p>
+                <details class="training-tools">
+                    <summary>Saved sketches &amp; training</summary>
+                    <p>Missed sketches stay on this device as training references.</p>
+                    <button id="exportTrainingButton" class="button secondary clear-button" type="button" disabled>Export training refs</button>
+                </details>
+            </div>
         </aside>
 
         <section class="game-panel">
             <header class="top-hud">
                 <div class="status-copy">
-                    <div id="instructions">Start a run, then draw the prompted object while dodging bullets.</div>
+                    <div class="eyebrow">The sketchbook</div>
+                    <div id="instructions">Draw the prompt. Dodge the red dots.<br>Keep going until they catch you.</div>
                     <div id="gameOverMessage" class="game-over" hidden></div>
                 </div>
                 <div class="hud-stats">
@@ -73,22 +80,38 @@
                         <span id="scoreValue" class="stat-value gold">0</span>
                     </div>
                     <div class="controls">
-                        <button id="startButton" class="button" type="button">Start run</button>
+                        <button id="startButton" class="button" type="button">Start run <span aria-hidden="true">↗</span></button>
                         <button id="retryButton" class="button secondary" type="button" hidden>Retry</button>
                     </div>
                 </div>
             </header>
 
             <div class="arena-wrap">
+                <div class="sheet-heading"><span>DRAWING SHEET</span><span>hold down to make your mark</span></div>
                 <div id="gameContainer" aria-label="Drawing and survival arena">
+                    <div class="blank-page">
+                        <svg viewBox="0 0 300 110" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 65 31 43 41 66 66 67 46 82 51 105 31 92 11 104 16 80 1 66 21 65" transform="translate(12 -19) rotate(-9 30 70)"/>
+                            <path d="M119 81 119 43 145 21 174 44 173 82 119 81 M113 45 146 16 180 46 M137 81 137 61 151 61 151 81 M157 49 165 49 165 58 157 58 157 49 M123 85 181 85"/>
+                            <path d="M245 65 Q237 36 258 16 Q279 38 272 65 Z M243 46 236 57 237 70 245 63 M273 46 281 58 278 71 272 63 M251 65 248 84 258 77 265 88 267 65 M253 39 Q254 30 262 33 Q270 37 263 44 Q254 47 253 39" transform="rotate(13 258 55)"/>
+                            <path d="M84 33 87 27 M89 39 98 37 M199 76 206 80 M204 67 213 68" stroke="#b8bbae"/>
+                        </svg>
+                        <h2>A blank page.<br>A little <span>chaos.</span></h2>
+                        <p>Turn a few lines into something the AI knows. Just watch out for the bullets.</p>
+                        <span class="hand-note">No perfect drawings required.</span>
+                    </div>
                     <canvas id="drawingCanvas"></canvas>
                     <div id="missionFlash" class="mission-flash" aria-live="assertive"></div>
                     <div id="playerCursor" aria-hidden="true"></div>
+                </div>
+                <div class="sheet-footer">
+                    <div class="arena-legend"><span><i class="legend-mark" aria-hidden="true"></i>You</span><span><i class="legend-mark danger" aria-hidden="true"></i>Dodge</span><span><i class="legend-mark pickup" aria-hidden="true"></i>Collect</span></div>
+                    <span>make a mess. stay alive.</span>
                 </div>
             </div>
         </section>
     </main>
 
-    <script type="module" src="src/game.js"></script>
+    <script type="module" src="src/game.js?v=paper-2"></script>
 </body>
 </html>
