@@ -1,6 +1,6 @@
 import { createSketchRecognizer, HeuristicSketchRecognizer, SKETCH_CATEGORIES } from "./recognizer.js";
-import { SketchPad } from "./sketch.js?v=ink-2";
-import { INK_COLORS, inkIndexFromKey } from "./ink.js?v=ink-2";
+import { SketchPad } from "./sketch.js?v=ink-3";
+import { INK_COLORS, inkIndexFromKey } from "./ink.js?v=ink-3";
 import { LocalTrainingDataStore } from "./trainingData.js";
 
 const $ = selector => document.querySelector(selector);

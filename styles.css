@@ -67,9 +67,10 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
 .ink-tools { padding: 12px 3px; border-top: 1px dashed var(--line); }
 .ink-tools .section-heading strong { font-family: "Segoe UI", sans-serif; font-size: 0.75rem; letter-spacing: 0; text-transform: none; }
 .ink-palette { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 12px 0 10px; }
-.ink-swatch { min-width: 0; min-height: 36px; padding: 0; color: white; background: var(--swatch); border: 2px solid transparent; border-radius: var(--rough); font-family: var(--utility); cursor: pointer; }
+.ink-swatch { min-width: 0; min-height: 36px; padding: 0; color: var(--ink); background: var(--swatch); border: 2px solid transparent; border-radius: var(--rough); font-family: var(--utility); cursor: pointer; }
+.ink-swatch:first-child { color: white; }
 .ink-swatch.yellow { color: var(--ink); }
-.ink-swatch.rainbow { color: var(--ink); background: linear-gradient(120deg, #ff0000, #ff8000, #ffff00, #00c000, #0080ff, #8000ff); text-shadow: 0 0 3px white, 0 0 3px white; }
+.ink-swatch.rainbow { background: linear-gradient(120deg, #e08080, #e0b080, #e0e080, #80e080, #80b0e0, #b080e0); }
 .ink-swatch[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; border-color: white; }
 .ink-swatch:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
 .ink-help { color: var(--muted); font-size: 0.72rem; line-height: 1.7; }
