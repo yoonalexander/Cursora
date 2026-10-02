@@ -60,7 +60,6 @@ function selectInk(index) {
     const ink = INK_COLORS[index];
     sketchPad.setColor(ink.value);
     elements.inkName.textContent = ink.name;
-    elements.cursor.style.setProperty("--pencil-color", sketchPad.displayColor);
     inkButtons.forEach((button, buttonIndex) => button.setAttribute("aria-pressed", String(buttonIndex === index)));
 }
 
@@ -528,16 +527,17 @@ function gameOver() {
 }
 
 elements.game.addEventListener("pointermove", event => {
+    elements.game.classList.toggle("uses-touch-cursor", event.pointerType !== "mouse");
     const point = pointFromEvent(event);
     updatePlayer(point);
     if (state.active && !state.missionLocked && state.pointerId === event.pointerId) {
         sketchPad.add(point);
-        elements.cursor.style.setProperty("--pencil-color", sketchPad.displayColor);
         elements.clear.disabled = false;
     }
 });
 
 elements.game.addEventListener("pointerdown", event => {
+    elements.game.classList.toggle("uses-touch-cursor", event.pointerType !== "mouse");
     if (!state.active || state.missionLocked || (event.pointerType === "mouse" && event.button !== 0)) return;
     event.preventDefault();
     const point = pointFromEvent(event);

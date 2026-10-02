@@ -24,8 +24,7 @@
 .preview-drawing { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--ink); }
 .preview-caption { position: absolute; top: 8px; left: 6px; color: var(--muted); font-family: var(--hand); font-size: 0.8rem; transform: rotate(-4deg); }
 .cursor-dot, .orb, .bullet { position: absolute; }
-.cursor-dot { width: 18px; height: 18px; left: 70%; top: 65%; background: white; border: 2px solid var(--ink); border-radius: 45% 55% 48% 52%; }
-.cursor-dot::after { content: ""; position: absolute; inset: 4px; background: var(--ink); border-radius: 50%; }
+.cursor-dot { width: 32px; height: 32px; left: 70%; top: 65%; transform: translate(-3px, -3px); background: var(--cursor-art) center / contain no-repeat; }
 .game-preview .orb { opacity: 1; }
 .orb.a { left: 12%; top: 25%; }
 .orb.b { right: 16%; bottom: 12%; }
