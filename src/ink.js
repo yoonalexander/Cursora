@@ -1,9 +1,9 @@
 export const INK_COLORS = Object.freeze([
     { name: "Black", value: "#000000" },
-    { name: "Red", value: "#db8989" },
-    { name: "Blue", value: "#88aadd" },
-    { name: "Yellow", value: "#e6d083" },
-    { name: "Green", value: "#8cba99" },
+    { name: "Red", value: "#D96868" },
+    { name: "Blue", value: "#3368A0" },
+    { name: "Yellow", value: "#FFEA88" },
+    { name: "Green", value: "#689D4B" },
     { name: "Rainbow", value: "rainbow" }
 ]);
 
