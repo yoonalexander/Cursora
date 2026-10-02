@@ -8,7 +8,14 @@ export class SketchPad {
         this.context = canvas.getContext("2d");
         this.strokes = [];
         this.currentStroke = null;
+        this.color = "#30312f";
+        // Display-only ink stays outside the raw strokes used for AI and training.
+        this.strokeColors = new WeakMap();
         this.pixelRatio = 1;
+    }
+
+    setColor(color) {
+        this.color = color;
     }
 
     resize(width, height) {
@@ -24,6 +31,7 @@ export class SketchPad {
     begin(point) {
         this.currentStroke = [{ x: point.x, y: point.y, t: point.t }];
         this.strokes.push(this.currentStroke);
+        this.strokeColors.set(this.currentStroke, [this.color]);
         this.render();
     }
 
@@ -32,6 +40,7 @@ export class SketchPad {
         const previous = this.currentStroke[this.currentStroke.length - 1];
         if (Math.hypot(point.x - previous.x, point.y - previous.y) < 1.5) return;
         this.currentStroke.push({ x: point.x, y: point.y, t: point.t });
+        this.strokeColors.get(this.currentStroke).push(this.color);
         this.render();
     }
 
@@ -39,6 +48,7 @@ export class SketchPad {
         if (this.currentStroke?.length === 1) {
             const point = this.currentStroke[0];
             this.currentStroke.push({ ...point, x: point.x + 0.1, t: performance.now() });
+            this.strokeColors.get(this.currentStroke).push(this.strokeColors.get(this.currentStroke)[0]);
         }
         this.currentStroke = null;
         this.render();
@@ -47,6 +57,7 @@ export class SketchPad {
     clear() {
         this.strokes = [];
         this.currentStroke = null;
+        this.strokeColors = new WeakMap();
         this.render();
     }
 
@@ -62,16 +73,27 @@ export class SketchPad {
         ctx.lineWidth = 2.5;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-        ctx.strokeStyle = "rgba(48, 49, 47, 0.88)";
+        ctx.globalAlpha = 0.88;
         ctx.shadowBlur = 0;
 
         for (const stroke of this.strokes) {
             if (!stroke.length) continue;
+            const colors = this.strokeColors.get(stroke);
+            ctx.strokeStyle = colors?.[1] || colors?.[0] || this.color;
             ctx.beginPath();
             ctx.moveTo(stroke[0].x, stroke[0].y);
             for (let index = 1; index < stroke.length; index += 1) {
                 const point = stroke[index];
                 const previous = stroke[index - 1];
+                const color = colors?.[index] || this.color;
+                if (color !== ctx.strokeStyle) {
+                    ctx.stroke();
+                    ctx.strokeStyle = color;
+                    ctx.beginPath();
+                    // Continue the same smoothed path without splitting AI strokes.
+                    const beforePrevious = stroke[index - 2];
+                    ctx.moveTo((beforePrevious.x + previous.x) / 2, (beforePrevious.y + previous.y) / 2);
+                }
                 const midX = (previous.x + point.x) / 2;
                 const midY = (previous.y + point.y) / 2;
                 ctx.quadraticCurveTo(previous.x, previous.y, midX, midY);
@@ -81,5 +103,6 @@ export class SketchPad {
             ctx.stroke();
         }
         ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
     }
 }

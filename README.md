@@ -32,6 +32,18 @@ npm test
 Add `?debug=1` to the game URL to log normalized features, preprocessing
 details, model-loading status, predictions, and locally saved training examples.
 
+## Pencil colors
+
+Pick a pencil color before starting a run using the six numbered swatches.
+Press `1`–`6` to select black, blue, purple, pink, orange, or teal, or `C` to cycle
+through them. The swatches also work during runs on touch devices. New ink uses
+the selected color, even when you switch while drawing; existing ink keeps its
+color through canvas resizes. The selection carries into the next prompt and retry.
+
+Color is display-only: recognizers and training examples receive the same raw
+`{ x, y, t }` coordinates. Neural input remains a single-channel monochrome image,
+so choosing a color cannot change AI input or scoring for the same drawing.
+
 ## Recognizers
 
 `HeuristicSketchRecognizer` is the deterministic geometry-based recognizer that

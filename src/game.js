@@ -1,5 +1,6 @@
 import { createSketchRecognizer, HeuristicSketchRecognizer, SKETCH_CATEGORIES } from "./recognizer.js";
-import { SketchPad } from "./sketch.js?v=paper-1";
+import { SketchPad } from "./sketch.js?v=ink-1";
+import { INK_COLORS, inkIndexFromKey } from "./ink.js?v=ink-1";
 import { LocalTrainingDataStore } from "./trainingData.js";
 
 const $ = selector => document.querySelector(selector);
@@ -30,11 +31,38 @@ const elements = {
     confidenceTrack: $(".confidence-track"),
     recognitionCard: $("#recognitionCard"),
     flash: $("#missionFlash"),
-    hint: $("#drawingHint")
+    hint: $("#drawingHint"),
+    inkPalette: $("#inkPalette"),
+    inkName: $("#inkName")
 };
 
 const debug = new URLSearchParams(window.location.search).has("debug");
 const sketchPad = new SketchPad(elements.canvas);
+let inkIndex = 0;
+const inkButtons = INK_COLORS.map((ink, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ink-swatch";
+    button.style.setProperty("--swatch", ink.value);
+    button.setAttribute("aria-label", `${ink.name} pencil (${index + 1})`);
+    button.setAttribute("aria-keyshortcuts", String(index + 1));
+    button.title = `${ink.name} · ${index + 1}`;
+    button.textContent = index + 1;
+    button.addEventListener("click", () => selectInk(index));
+    elements.inkPalette.appendChild(button);
+    return button;
+});
+
+function selectInk(index) {
+    inkIndex = index;
+    const ink = INK_COLORS[index];
+    sketchPad.setColor(ink.value);
+    elements.inkName.textContent = ink.name;
+    elements.cursor.style.setProperty("--pencil-color", ink.value);
+    inkButtons.forEach((button, buttonIndex) => button.setAttribute("aria-pressed", String(buttonIndex === index)));
+}
+
+selectInk(0);
 let recognizer = new HeuristicSketchRecognizer({ debug });
 const trainingStore = new LocalTrainingDataStore({ debug });
 
@@ -528,6 +556,12 @@ elements.game.addEventListener("pointerup", endPointer);
 elements.game.addEventListener("pointercancel", endPointer);
 elements.game.addEventListener("contextmenu", event => event.preventDefault());
 elements.start.addEventListener("click", startGame);
+window.addEventListener("keydown", event => {
+    const index = inkIndexFromKey(event, inkIndex);
+    if (index === null) return;
+    event.preventDefault();
+    selectInk(index);
+});
 elements.retry.addEventListener("click", startGame);
 elements.clear.addEventListener("click", () => {
     if (!state.active || state.missionLocked) return;
