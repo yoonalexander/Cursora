@@ -1,6 +1,6 @@
 import { createSketchRecognizer, HeuristicSketchRecognizer, SKETCH_CATEGORIES } from "./recognizer.js";
-import { SketchPad } from "./sketch.js?v=ink-1";
-import { INK_COLORS, inkIndexFromKey } from "./ink.js?v=ink-1";
+import { SketchPad } from "./sketch.js?v=ink-2";
+import { INK_COLORS, inkIndexFromKey } from "./ink.js?v=ink-2";
 import { LocalTrainingDataStore } from "./trainingData.js";
 
 const $ = selector => document.querySelector(selector);
@@ -44,6 +44,8 @@ const inkButtons = INK_COLORS.map((ink, index) => {
     button.type = "button";
     button.className = "ink-swatch";
     button.style.setProperty("--swatch", ink.value);
+    button.classList.toggle("rainbow", ink.value === "rainbow");
+    button.classList.toggle("yellow", ink.name === "Yellow");
     button.setAttribute("aria-label", `${ink.name} pencil (${index + 1})`);
     button.setAttribute("aria-keyshortcuts", String(index + 1));
     button.title = `${ink.name} · ${index + 1}`;
@@ -58,7 +60,7 @@ function selectInk(index) {
     const ink = INK_COLORS[index];
     sketchPad.setColor(ink.value);
     elements.inkName.textContent = ink.name;
-    elements.cursor.style.setProperty("--pencil-color", ink.value);
+    elements.cursor.style.setProperty("--pencil-color", sketchPad.displayColor);
     inkButtons.forEach((button, buttonIndex) => button.setAttribute("aria-pressed", String(buttonIndex === index)));
 }
 
@@ -530,6 +532,7 @@ elements.game.addEventListener("pointermove", event => {
     updatePlayer(point);
     if (state.active && !state.missionLocked && state.pointerId === event.pointerId) {
         sketchPad.add(point);
+        elements.cursor.style.setProperty("--pencil-color", sketchPad.displayColor);
         elements.clear.disabled = false;
     }
 });

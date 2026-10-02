@@ -51,6 +51,44 @@ test("switching ink mid-stroke preserves geometry, monochrome AI input and predi
     assert.deepEqual(await recognizer.predict(colorful.pad.strokes, 100, 100), await recognizer.predict(plain.pad.strokes, 100, 100));
 });
 
+test("rainbow changes along one stroke without changing AI geometry or monochrome input", async () => {
+    const plain = createPad();
+    const rainbow = createPad();
+    rainbow.pad.setColor("rainbow");
+    draw(plain.pad);
+    draw(rainbow.pad);
+    assert.deepEqual(rainbow.pad.strokes, plain.pad.strokes);
+    assert.ok(new Set(rainbow.rendered.map(segment => segment.color)).size > 1);
+    assert.ok(rainbow.rendered.every(segment => segment.color.startsWith("hsl(")));
+    assert.deepEqual(
+        rainbow.rendered.flatMap(segment => segment.path.filter(command => command[0] !== "move")),
+        plain.rendered.flatMap(segment => segment.path.filter(command => command[0] !== "move"))
+    );
+    const monochrome = pad => preprocessNormalizedStrokes(normalizeStrokes(pad.strokes, 100, 100));
+    assert.deepEqual(monochrome(rainbow.pad), monochrome(plain.pad));
+    const recognizer = new HeuristicSketchRecognizer();
+    assert.deepEqual(await recognizer.predict(rainbow.pad.strokes, 100, 100), await recognizer.predict(plain.pad.strokes, 100, 100));
+    const savedInk = structuredClone(rainbow.rendered);
+    rainbow.pad.setColor(INK_COLORS[1].value);
+    rainbow.pad.render();
+    assert.deepEqual(rainbow.rendered, savedInk);
+});
+
+test("rainbow hue follows drawing distance rather than sampling frequency", () => {
+    const sparse = createPad().pad;
+    const dense = createPad().pad;
+    for (const pad of [sparse, dense]) {
+        pad.setColor("rainbow");
+        pad.begin({ x: 0, y: 10, t: 0 });
+    }
+    sparse.add({ x: 100, y: 10, t: 100 });
+    for (let x = 2; x <= 100; x += 2) dense.add({ x, y: 10, t: x });
+    assert.equal(sparse.displayColor, dense.displayColor);
+    const hue = dense.displayColor;
+    dense.add({ x: 100.5, y: 10, t: 200 });
+    assert.equal(dense.displayColor, hue);
+});
+
 test("old ink survives new selections and resize; clear keeps the selected pencil", () => {
     const { pad, rendered } = createPad();
     pad.setColor(INK_COLORS[1].value);

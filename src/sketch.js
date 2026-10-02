@@ -8,7 +8,8 @@ export class SketchPad {
         this.context = canvas.getContext("2d");
         this.strokes = [];
         this.currentStroke = null;
-        this.color = "#30312f";
+        this.color = "#000000";
+        this.rainbowHue = 0;
         // Display-only ink stays outside the raw strokes used for AI and training.
         this.strokeColors = new WeakMap();
         this.pixelRatio = 1;
@@ -16,6 +17,10 @@ export class SketchPad {
 
     setColor(color) {
         this.color = color;
+    }
+
+    get displayColor() {
+        return this.color === "rainbow" ? `hsl(${Math.round(this.rainbowHue)} 100% 50%)` : this.color;
     }
 
     resize(width, height) {
@@ -31,16 +36,19 @@ export class SketchPad {
     begin(point) {
         this.currentStroke = [{ x: point.x, y: point.y, t: point.t }];
         this.strokes.push(this.currentStroke);
-        this.strokeColors.set(this.currentStroke, [this.color]);
+        this.strokeColors.set(this.currentStroke, [this.displayColor]);
         this.render();
     }
 
     add(point) {
         if (!this.currentStroke) return;
         const previous = this.currentStroke[this.currentStroke.length - 1];
-        if (Math.hypot(point.x - previous.x, point.y - previous.y) < 1.5) return;
+        const distance = Math.hypot(point.x - previous.x, point.y - previous.y);
+        if (distance < 1.5) return;
+        // Advance by distance drawn, so rainbow speed is independent of pointer event frequency.
+        if (this.color === "rainbow") this.rainbowHue = (this.rainbowHue + distance * 1.5) % 360;
         this.currentStroke.push({ x: point.x, y: point.y, t: point.t });
-        this.strokeColors.get(this.currentStroke).push(this.color);
+        this.strokeColors.get(this.currentStroke).push(this.displayColor);
         this.render();
     }
 
@@ -79,15 +87,18 @@ export class SketchPad {
         for (const stroke of this.strokes) {
             if (!stroke.length) continue;
             const colors = this.strokeColors.get(stroke);
-            ctx.strokeStyle = colors?.[1] || colors?.[0] || this.color;
+            let strokeColor = colors?.[1] || colors?.[0] || this.displayColor;
+            ctx.strokeStyle = strokeColor;
             ctx.beginPath();
             ctx.moveTo(stroke[0].x, stroke[0].y);
             for (let index = 1; index < stroke.length; index += 1) {
                 const point = stroke[index];
                 const previous = stroke[index - 1];
-                const color = colors?.[index] || this.color;
-                if (color !== ctx.strokeStyle) {
+                const color = colors?.[index] || this.displayColor;
+                // Canvas serializes HSL as RGB; compare our stored colors, not strokeStyle.
+                if (color !== strokeColor) {
                     ctx.stroke();
+                    strokeColor = color;
                     ctx.strokeStyle = color;
                     ctx.beginPath();
                     // Continue the same smoothed path without splitting AI strokes.

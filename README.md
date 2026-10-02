@@ -35,8 +35,9 @@ details, model-loading status, predictions, and locally saved training examples.
 ## Pencil colors
 
 Pick a pencil color before starting a run using the six numbered swatches.
-Press `1`–`6` to select black, blue, purple, pink, orange, or teal, or `C` to cycle
-through them. The swatches also work during runs on touch devices. New ink uses
+Press `1`–`6` to select black, red, blue, yellow, green, or rainbow, or `C` to cycle
+through them. Rainbow cycles through hues along the line as you draw, based on
+distance traveled. The swatches also work during runs on touch devices. New ink uses
 the selected color, even when you switch while drawing; existing ink keeps its
 color through canvas resizes. The selection carries into the next prompt and retry.
 

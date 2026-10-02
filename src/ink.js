@@ -1,10 +1,10 @@
 export const INK_COLORS = Object.freeze([
-    { name: "Black", value: "#30312f" },
-    { name: "Blue", value: "#2868b2" },
-    { name: "Purple", value: "#8053aa" },
-    { name: "Pink", value: "#c34f87" },
-    { name: "Orange", value: "#be681e" },
-    { name: "Teal", value: "#287d79" }
+    { name: "Black", value: "#000000" },
+    { name: "Red", value: "#ff0000" },
+    { name: "Blue", value: "#0000ff" },
+    { name: "Yellow", value: "#ffff00" },
+    { name: "Green", value: "#008000" },
+    { name: "Rainbow", value: "rainbow" }
 ]);
 
 export function inkIndexFromKey(event, currentIndex) {
