@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { SKETCH_CATEGORIES } from "../src/recognizer.js";
 import { DEFAULT_IMAGE_SIZE } from "../src/sketchPreprocessing.js";
 import { prepareTrainingExamples, unwrapTrainingExport } from "./sketch-data-utils.mjs";
+import { fetchWebsiteTrainingExamples } from "./website-training-data.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -80,18 +81,21 @@ async function saveTfjsModel(model, outputDir) {
 
 async function main() {
     const inputPath = argValue("input", null);
+    const website = argValue("website", inputPath ? null : process.env.CURSORA_WEBSITE);
     const outputDir = path.resolve(root, argValue("output", "models/sketch-model"));
     const imageSize = Number(argValue("size", DEFAULT_IMAGE_SIZE));
     const epochs = Number(argValue("epochs", 20));
     const batchSize = Number(argValue("batch-size", 16));
 
-    if (!inputPath) {
-        throw new Error("Usage: node scripts/train-sketch-model.mjs --input=path/to/cursora-training.json");
+    if ((!inputPath && !website) || (inputPath && website)) {
+        throw new Error("Provide --website=https://your-site or --input=path/to/cursora-training.json, but not both.");
     }
 
     const tf = await loadTensorFlow();
-    const raw = JSON.parse(await readFile(path.resolve(root, inputPath), "utf8"));
-    const examples = unwrapTrainingExport(raw);
+    const examples = website
+        ? await fetchWebsiteTrainingExamples(website)
+        : unwrapTrainingExport(JSON.parse(await readFile(path.resolve(root, inputPath), "utf8")));
+    if (website) console.info(`Loaded ${examples.length} approved drawings from the website.`);
     const { prepared, skipped } = prepareTrainingExamples(examples, { size: imageSize });
 
     for (const skippedExample of skipped) {

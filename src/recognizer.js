@@ -1,10 +1,8 @@
 import { createInputTensor, DEFAULT_IMAGE_SIZE, preprocessNormalizedStrokes } from "./sketchPreprocessing.js";
 import { loadTensorFlowJs } from "./tfjsLoader.js";
 
-export const SKETCH_CATEGORIES = [
-    "cat", "dog", "house", "tree", "car", "bicycle",
-    "rocket", "fish", "robot", "hamburger", "star", "umbrella"
-];
+import { SKETCH_CATEGORIES } from "./sketchCategories.js";
+export { SKETCH_CATEGORIES };
 
 const clamp = (value, min = 0, max = 1) => Math.max(min, Math.min(max, value));
 const near = (value, target, spread) => clamp(1 - Math.abs(value - target) / spread);

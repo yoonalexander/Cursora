@@ -1,7 +1,7 @@
 import { createSketchRecognizer, HeuristicSketchRecognizer, SKETCH_CATEGORIES } from "./recognizer.js";
 import { SketchPad } from "./sketch.js?v=ink-3";
 import { INK_COLORS, inkIndexFromKey } from "./ink.js?v=ink-3";
-import { LocalTrainingDataStore } from "./trainingData.js";
+import { HttpTrainingDataStore } from "./trainingData.js?v=collection-1";
 
 const $ = selector => document.querySelector(selector);
 const elements = {
@@ -22,6 +22,8 @@ const elements = {
     completed: $("#completedCount"),
     streak: $("#streakCount"),
     trainingCount: $("#trainingCount"),
+    trainingStatus: $("#trainingSyncStatus"),
+    shareDrawings: $("#shareDrawings"),
     tier: $("#missionTier"),
     guesses: $("#guessList"),
     guessPhrase: $("#guessPhrase"),
@@ -65,7 +67,7 @@ function selectInk(index) {
 
 selectInk(0);
 let recognizer = new HeuristicSketchRecognizer({ debug });
-const trainingStore = new LocalTrainingDataStore({ debug });
+const trainingStore = new HttpTrainingDataStore({ debug, onChange: () => { void refreshTrainingCount(); } });
 
 const RECOGNITION_INTERVAL = 700;
 const COMPLETION_THRESHOLD = 0.65;
@@ -255,28 +257,39 @@ function cloneStrokes() {
 }
 
 function buildTrainingExample(outcome) {
+    const strokes = cloneStrokes();
+    const points = strokes.flat();
     return {
         label: state.target,
         outcome,
         durationMs: performance.now() - state.promptStarted,
         canvas: {
-            width: elements.game.clientWidth,
-            height: elements.game.clientHeight
+            width: Math.max(elements.game.clientWidth, ...points.map(point => point.x)),
+            height: Math.max(elements.game.clientHeight, ...points.map(point => point.y))
         },
         predictions: state.lastPredictions,
-        strokes: cloneStrokes()
+        strokes
     };
 }
 
 async function refreshTrainingCount() {
-    const count = await trainingStore.count();
-    elements.trainingCount.textContent = count;
-    elements.exportTraining.disabled = count === 0;
+    const examples = await trainingStore.listExamples();
+    elements.trainingCount.textContent = examples.length;
+    elements.exportTraining.disabled = examples.length === 0;
+    const pending = examples.filter(example => !example.uploadedAt && !example.uploadError).length;
+    const invalid = examples.filter(example => example.uploadError).length;
+    elements.trainingStatus.textContent = !trainingStore.enabled ? "Sharing is off."
+        : trainingStore.status === "waiting" ? `${pending} drawings saved on this device. Upload will retry automatically.`
+        : pending ? `${pending} drawings waiting to upload.`
+        : examples.length ? "Your saved drawings have been uploaded for review." : "Drawings will upload automatically as you play.";
+    if (invalid) elements.trainingStatus.textContent += ` ${invalid} older references need a local backup.`;
 }
 
-async function saveMissedTrainingExample() {
-    if (sketchPad.pointCount < 8) return false;
-    await trainingStore.saveExample(buildTrainingExample("missed"));
+async function saveTrainingExample(outcome) {
+    if (sketchPad.pointCount < 8 || !trainingStore.enabled) return false;
+    // Snapshot synchronously before the next prompt can clear the canvas.
+    const example = buildTrainingExample(outcome);
+    await trainingStore.saveExample(example);
     await refreshTrainingCount();
     return true;
 }
@@ -291,6 +304,10 @@ function showMissionFlash(message) {
 function completeMission(prediction) {
     state.missionLocked = true;
     stopDrawingInput();
+    void saveTrainingExample("recognized").catch(error => {
+        if (debug) console.warn("Could not queue drawing:", error.message);
+        elements.trainingStatus.textContent = "This drawing could not be saved on this device.";
+    });
     const promptSeconds = Math.max(1, (performance.now() - state.promptStarted) / 1000);
     const speedBonus = Math.max(0, Math.round(900 - promptSeconds * 35));
     const tierBonus = state.difficulty * 125;
@@ -332,12 +349,12 @@ function expireMission() {
     elements.thinking.classList.remove("active");
     elements.recognitionCard.classList.remove("close");
 
-    void saveMissedTrainingExample()
+    void saveTrainingExample("missed")
         .then(saved => {
             if (!state.active || state.target !== expiredTarget) return;
             showMissionFlash(saved ? `Time! Saved ${expiredTarget} reference.` : "Time! Next drawing.");
             elements.guessPhrase.textContent = saved
-                ? "Missed sketch saved locally for future training."
+                ? "Sketch saved for training. Upload happens automatically."
                 : "No usable sketch to save. Next prompt incoming.";
         })
         .catch(error => {
@@ -575,6 +592,11 @@ elements.clear.addEventListener("click", () => {
 elements.exportTraining.addEventListener("click", () => {
     void trainingStore.exportExamples();
 });
+elements.shareDrawings.checked = trainingStore.enabled;
+elements.shareDrawings.addEventListener("change", () => trainingStore.setEnabled(elements.shareDrawings.checked));
+window.addEventListener("online", () => { void trainingStore.flush(); });
+window.addEventListener("pagehide", () => { void trainingStore.flush(); });
+window.setInterval(() => { void trainingStore.flush(); }, 30000);
 // Keep the ink aligned when HUD text or responsive layout changes the sheet size.
 const arenaResizeObserver = new ResizeObserver(resize);
 arenaResizeObserver.observe(elements.game);
@@ -584,4 +606,5 @@ resize();
 updatePlayer({ ...state.player });
 resetRecognitionUI();
 void refreshTrainingCount();
+void trainingStore.flush();
 void initializeRecognizer();

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+    <title>Drawing review · Cursora</title>
+    <link rel="stylesheet" href="styles.css?v=cursor-1">
+    <link rel="stylesheet" href="training-review.css">
+</head>
+<body>
+    <main class="review-shell">
+        <a href="index.html">← Back to Cursora</a>
+        <h1>Drawing review</h1>
+        <p>Approve useful examples, correct labels, or reject unfinished drawings. Website training uses approved drawings only.</p>
+        <form id="connectForm" class="review-controls">
+            <label>Owner token <input id="ownerToken" type="password" autocomplete="off" required></label>
+            <label>Show <select id="reviewFilter"><option value="pending">Awaiting review</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></label>
+            <button class="button" type="submit">Load drawings</button>
+            <button id="lockReview" class="button secondary" type="button">Lock review</button>
+        </form>
+        <p>The token stays in this page's memory and is cleared when you lock or close it.</p>
+        <p id="reviewMessage" role="status">Enter your owner token to load drawings.</p>
+        <div id="reviewExamples" class="review-grid"></div>
+        <button id="nextPage" class="button secondary" type="button" hidden>Next drawings</button>
+    </main>
+    <script type="module" src="src/trainingReview.js"></script>
+</body>
+</html>

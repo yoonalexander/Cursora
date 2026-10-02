@@ -1,0 +1,4 @@
+.local-training/
+.env
+.env.*
+test/

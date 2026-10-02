@@ -1,8 +1,7 @@
+import { sanitizeExample, validateExample } from "./trainingExample.js";
+
 /**
- * Static-site friendly training data capture.
- *
- * The game can save missed drawings locally today, then this adapter can later
- * be swapped for an HTTP/API-backed collector without changing mission logic.
+ * Local backups and a persistent outbox for automatic website collection.
  */
 export class TrainingDataStore {
     async saveExample(_example) {
@@ -20,24 +19,29 @@ export class TrainingDataStore {
 }
 
 export class LocalTrainingDataStore extends TrainingDataStore {
-    constructor({ storageKey = "cursora.trainingExamples.v1", debug = false } = {}) {
+    constructor({ storageKey = "cursora.trainingExamples.v1", debug = false, storage = globalThis.localStorage } = {}) {
         super();
         this.storageKey = storageKey;
         this.debug = debug;
+        this.storage = storage;
     }
 
     async saveExample(example) {
-        const examples = await this.listExamples();
+        const examples = this.readExamples();
         const sanitized = sanitizeExample(example);
         examples.push(sanitized);
-        window.localStorage.setItem(this.storageKey, JSON.stringify(examples));
+        this.storage.setItem(this.storageKey, JSON.stringify(examples));
         if (this.debug) console.info("Saved local training example:", sanitized);
         return sanitized;
     }
 
     async listExamples() {
+        return this.readExamples();
+    }
+
+    readExamples() {
         try {
-            const raw = window.localStorage.getItem(this.storageKey);
+            const raw = this.storage.getItem(this.storageKey);
             const parsed = raw ? JSON.parse(raw) : [];
             return Array.isArray(parsed) ? parsed : [];
         } catch (error) {
@@ -64,43 +68,87 @@ export class LocalTrainingDataStore extends TrainingDataStore {
     }
 }
 
-function sanitizeExample(example) {
-    return {
-        id: crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        label: String(example.label || "unknown").toLowerCase(),
-        outcome: example.outcome === "recognized" ? "recognized" : "missed",
-        durationMs: Math.round(Number(example.durationMs) || 0),
-        canvas: {
-            width: Math.round(Number(example.canvas?.width) || 0),
-            height: Math.round(Number(example.canvas?.height) || 0)
-        },
-        predictions: Array.isArray(example.predictions)
-            ? example.predictions.slice(0, 5).map(prediction => ({
-                label: String(prediction.label),
-                confidence: Number(prediction.confidence) || 0
-            }))
-            : [],
-        strokes: Array.isArray(example.strokes)
-            ? example.strokes.map(stroke => stroke.map(point => ({
-                x: Math.round(Number(point.x) || 0),
-                y: Math.round(Number(point.y) || 0),
-                t: Math.round(Number(point.t) || 0)
-            })))
-            : [],
-        createdAt: new Date().toISOString()
-    };
-}
+export class HttpTrainingDataStore extends LocalTrainingDataStore {
+    constructor({ endpoint = "/api/training-examples", fetcher = globalThis.fetch?.bind(globalThis), onChange = () => {}, ...options } = {}) {
+        super(options);
+        this.endpoint = endpoint;
+        this.fetcher = fetcher;
+        this.onChange = onChange;
+        try { this.enabled = this.storage.getItem("cursora.shareDrawings") !== "false"; }
+        catch { this.enabled = true; }
+        this.syncing = null;
+        this.retryAt = 0;
+        this.status = "idle";
+    }
 
-/**
- * Future backend seam:
- * class HttpTrainingDataStore extends TrainingDataStore {
- *   constructor(endpoint) { super(); this.endpoint = endpoint; }
- *   async saveExample(example) {
- *     await fetch(this.endpoint, {
- *       method: "POST",
- *       headers: { "content-type": "application/json" },
- *       body: JSON.stringify(sanitizeExample(example))
- *     });
- *   }
- * }
- */
+    setEnabled(enabled) {
+        this.enabled = enabled;
+        try { this.storage.setItem("cursora.shareDrawings", String(enabled)); }
+        catch { this.status = "waiting"; }
+        if (enabled) void this.flush();
+        this.onChange();
+    }
+
+    async saveExample(example) {
+        if (!this.enabled) return null;
+        const saved = await super.saveExample(validateExample(sanitizeExample(example)));
+        this.onChange();
+        void this.flush();
+        return saved;
+    }
+
+    // A single worker avoids racing writes while new drawings enter the outbox.
+    flush() {
+        if (this.syncing) return this.syncing;
+        if (!this.enabled || Date.now() < this.retryAt) return Promise.resolve();
+        this.syncing = this.uploadPending().catch(error => {
+            this.status = "waiting";
+            this.retryAt = Math.max(this.retryAt, Date.now() + 30000);
+            if (this.debug) console.info("Drawing upload queued for retry:", error.message);
+        }).finally(() => {
+            this.syncing = null;
+            this.onChange();
+        });
+        return this.syncing;
+    }
+
+    async uploadPending() {
+        this.status = "uploading";
+        this.onChange();
+        while (this.enabled) {
+            const examples = this.readExamples();
+            const example = examples.find(item => !item.uploadedAt && !item.uploadError);
+            if (!example) { this.status = "synced"; return; }
+            // Existing local references join the queue automatically, with stable IDs.
+            if (!/^[0-9a-f-]{36}$/i.test(example.id || "")) example.id = globalThis.crypto.randomUUID();
+            // Persist a migrated ID, but retain the original strokes in the backup.
+            this.storage.setItem(this.storageKey, JSON.stringify(examples));
+            let permanentError;
+            let prepared;
+            try { prepared = validateExample(sanitizeExample(example)); } catch (error) { permanentError = error.message; }
+            if (!permanentError) {
+                const body = JSON.stringify(prepared);
+                const response = await this.fetcher(this.endpoint, {
+                    method: "POST", headers: { "Content-Type": "application/json" }, body,
+                    keepalive: new TextEncoder().encode(body).length < 60000,
+                    signal: AbortSignal.timeout(10000)
+                });
+                if ([400, 413, 422].includes(response.status)) permanentError = "This reference could not be uploaded.";
+                else if (!response.ok) {
+                    this.retryAt = Date.now() + Math.max(30, Math.min(300, Number(response.headers.get("retry-after")) || 30)) * 1000;
+                    throw new Error("Collection is unavailable.");
+                }
+                else {
+                    const result = await response.json();
+                    if (result.saved !== true || result.id !== prepared.id) throw new Error("Collection did not confirm the drawing.");
+                }
+            }
+            const latest = this.readExamples();
+            this.storage.setItem(this.storageKey, JSON.stringify(latest.map(item => item.id !== example.id ? item : {
+                ...item, ...(permanentError ? { uploadError: permanentError } : { uploadedAt: new Date().toISOString() })
+            })));
+            this.onChange();
+        }
+        this.status = "idle";
+    }
+}

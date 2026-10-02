@@ -3,11 +3,18 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "node --env-file-if-exists=.env scripts/dev-server.mjs",
     "create:dev-model": "node scripts/create-dev-sketch-model.mjs",
-    "train:sketch-model": "node scripts/train-sketch-model.mjs",
+    "train:sketch-model": "node --env-file-if-exists=.env scripts/train-sketch-model.mjs",
     "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8"
   }
 }

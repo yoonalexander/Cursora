@@ -62,8 +62,10 @@
                 <p id="drawingHint" class="drawing-hint">Hold down and draw. You have 20 seconds to help the AI recognize each object.</p>
                 <details class="training-tools">
                     <summary>Saved sketches &amp; training</summary>
-                    <p>Missed sketches stay on this device as training references.</p>
-                    <button id="exportTrainingButton" class="button secondary clear-button" type="button" disabled>Export training refs</button>
+                    <p>Your completed and missed drawings are sent to Cursora to help train its drawing recognizer. Drawings are reviewed before training.</p>
+                    <label><input id="shareDrawings" type="checkbox" checked> Share my drawings for training</label>
+                    <p id="trainingSyncStatus" role="status">Drawings will upload automatically as you play.</p>
+                    <button id="exportTrainingButton" class="button secondary clear-button" type="button" disabled>Download local backup</button>
                 </details>
             </div>
         </aside>
@@ -117,6 +119,6 @@
         </section>
     </main>
 
-    <script type="module" src="src/game.js?v=cursor-1"></script>
+    <script type="module" src="src/game.js?v=cursor-1-collection-1"></script>
 </body>
 </html>

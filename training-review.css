@@ -1,0 +1,12 @@
+.review-shell { max-width: 1100px; margin: 40px auto; padding: 0 24px 48px; }
+.review-shell h1 { margin: 24px 0 12px; }
+.review-shell p { margin: 12px 0; line-height: 1.6; }
+.review-controls { display: flex; gap: 16px; align-items: end; flex-wrap: wrap; margin: 24px 0; }
+.review-controls label { display: grid; gap: 8px; }
+.review-shell input, .review-shell select { padding: 10px; max-width: 100%; border: 1px solid var(--line-strong); background: white; font: inherit; }
+.review-shell input:focus-visible, .review-shell select:focus-visible { outline: 3px solid var(--green); }
+.review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin: 24px 0; }
+.review-example { min-width: 0; border: 1px solid var(--line-strong); border-radius: 8px; padding: 16px; }
+.review-example canvas { display: block; width: 100%; max-width: 240px; height: auto; margin: 0 auto 16px; background: white; border: 1px solid var(--line); }
+.review-example .review-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.review-example .button { padding: 8px 10px; }
